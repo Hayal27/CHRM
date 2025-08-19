@@ -1,0 +1,42 @@
+[
+    {
+      "tariff_id": 1,
+      "source": "City A",
+      "destination": "City B",
+      "vehicle_level": 1,
+      "price": 150.00,
+      "status": "active"
+    },
+    {
+      "tariff_id": 2,
+      "source": "City C",
+      "destination": "City D",
+      "vehicle_level": 2,
+      "price": 220.50,
+      "status": "pending"
+    },
+    {
+      "tariff_id": 3,
+      "source": "City A",
+      "destination": "City C",
+      "vehicle_level": "Premium",
+      "price": "300.00",
+      "status": "active"
+    },
+    {
+      "tariff_id": 4,
+      "source": "City B",
+      "destination": "City D",
+      "vehicle_level": 1,
+      "price": 180.75,
+      "status": "deactivated"
+    },
+    {
+      "tariff_id": 5,
+      "source": "City E",
+      "destination": "City F",
+      "vehicle_level": 3,
+      "price": 450.00,
+      "status": "active"
+    }
+  ]
