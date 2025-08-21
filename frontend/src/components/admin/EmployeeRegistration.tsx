@@ -49,7 +49,7 @@ const EmployeeRegistration: React.FC = () => {
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const response = await Axios.get("https://hrbackend.wingtechai.com/api/roles");
+        const response = await Axios.get("http://localhost:5000/api/roles");
         setRoles(response.data);
       } catch (error) {
         console.error("Error fetching roles:", error);
@@ -58,7 +58,7 @@ const EmployeeRegistration: React.FC = () => {
 
     const fetchDepartments = async () => {
       try {
-        const response = await Axios.get("https://hrbackend.wingtechai.com/api/departments");
+        const response = await Axios.get("http://localhost:5000/api/departments");
         setDepartments(response.data);
       } catch (error) {
         console.error("Error fetching departments:", error);
@@ -79,7 +79,7 @@ const EmployeeRegistration: React.FC = () => {
     e.preventDefault();
 
     try {
-      const response = await Axios.post("https://hrbackend.wingtechai.com/api/addEmployee", data);
+      const response = await Axios.post("http://localhost:5000/api/addEmployee", data);
       console.log(response.data);
       // Check if response.data has a message indicating an error
       if (response.data.message) {

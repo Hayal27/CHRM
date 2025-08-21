@@ -80,7 +80,7 @@ const CareerPage: React.FC = () => {
         location: locationFilter || undefined
       };
       
-      const response = await axios.get('https://hrbackend.wingtechai.com/api/public-vacancies', { params });
+      const response = await axios.get('http://localhost:5000/api/public-vacancies', { params });
       setVacancies(response.data.vacancies || []);
     } catch (error) {
       console.error('Error fetching vacancies:', error);

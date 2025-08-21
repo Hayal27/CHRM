@@ -82,6 +82,8 @@ export const navigationConfig: NavSection[] = [
     label: "HRMS",
     items: [
       { path: "/hrms/dashboard", label: "HR Dashboard", icon: "fas fa-briefcase" },
+      { path: "/education-office-dashboard", label: "Education Office", icon: "fas fa-graduation-cap" },
+      { path: "/enhanced-employee-registration", label: "Enhanced Registration", icon: "fas fa-user-plus" },
       {
         path: "#recruitment", // Target for collapse ID
         basePath: "/hrms/recruitment", // Path prefix for active state/expansion

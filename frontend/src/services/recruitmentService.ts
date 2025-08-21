@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Update API base URL to match your backend server
-const API_BASE = 'https://hrbackend.wingtechai.com/api';
+const API_BASE = 'http://localhost:5000/api';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');

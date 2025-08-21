@@ -23,7 +23,7 @@ const UserRegistration = () => {
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const response = await Axios.get("https://hrbackend.wingtechai.com/api/roles");
+        const response = await Axios.get("http://localhost:5000/api/roles");
         setRoles(response.data);
       } catch (error) {
         console.error("Error fetching roles:", error); // Improved error logging
@@ -37,7 +37,7 @@ const UserRegistration = () => {
   useEffect(() => {
     const fetchDepartments = async () => { // Fixed function name
       try {
-        const response = await Axios.get("https://hrbackend.wingtechai.com/api/department");
+        const response = await Axios.get("http://localhost:5000/api/department");
         setDepartments(response.data); // Changed to setDepartments
       } catch (error) {
         console.error("Error fetching departments:", error); // Improved error logging
@@ -57,7 +57,7 @@ const UserRegistration = () => {
     e.preventDefault();
 
     try {
-      const response = await Axios.post("https://hrbackend.wingtechai.com/api/addUser", data);
+      const response = await Axios.post("http://localhost:5000/api/addUser", data);
       console.log(response.data); // Log the entire response for debugging
       if (response.data.message) {
         setErrorMessage(response.data.message);

@@ -76,7 +76,7 @@ const EmployeeProfileDashboard: React.FC = () => {
     setError(null);
     try {
       // Use the correct endpoint for fetching all employees
-      const response = await Axios.get("https://hrbackend.wingtechai.com/api/getEmployees");
+      const response = await Axios.get("http://localhost:5000/api/getEmployees");
       let data = response.data.employees ?? response.data;
       // Convert status '1' to 'Active', '0' or falsy to 'Inactive'
       data = Array.isArray(data)
@@ -106,7 +106,7 @@ const EmployeeProfileDashboard: React.FC = () => {
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const response = await Axios.get("https://hrbackend.wingtechai.com/api/roles");
+        const response = await Axios.get("http://localhost:5000/api/roles");
         setRoles(response.data);
       } catch (error) {
         // ignore error
@@ -114,7 +114,7 @@ const EmployeeProfileDashboard: React.FC = () => {
     };
     const fetchDepartments = async () => {
       try {
-        const response = await Axios.get("https://hrbackend.wingtechai.com/api/departments");
+        const response = await Axios.get("http://localhost:5000/api/departments");
         setDepartments(response.data);
       } catch (error) {
         // ignore error
@@ -181,7 +181,7 @@ const EmployeeProfileDashboard: React.FC = () => {
       };
       // Registration API call
       try {
-        const response = await Axios.post("https://hrbackend.wingtechai.com/api/addEmployee", newEmployee);
+        const response = await Axios.post("http://localhost:5000/api/addEmployee", newEmployee);
         if (response.data.message) {
           setModalType("success");
           setModalMessage(response.data.message);

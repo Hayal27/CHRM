@@ -54,7 +54,7 @@ A comprehensive React TypeScript frontend for the HR Recruitment Module, built w
 2. **Environment Setup**
    Create a `.env` file in the root directory:
    ```env
-   REACT_APP_API_URL=https://hrbackend.wingtechai.com/api
+   REACT_APP_API_URL=http://localhost:5000/api
    ```
 
 3. **Start Development Server**

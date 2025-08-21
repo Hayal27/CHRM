@@ -57,7 +57,7 @@ const UserTable: React.FC = () => {
 
   // Fetch users from backend
   const fetchUsers = () => {
-    Axios.get("https://hrbackend.wingtechai.com/api/users")
+    Axios.get("http://localhost:5000/api/users")
       .then((res) => {
         console.log("Fetched users data:", res.data);
         setUsers(res.data);
@@ -69,7 +69,7 @@ const UserTable: React.FC = () => {
 
   // Fetch roles from backend
   const fetchRoles = () => {
-    Axios.get("https://hrbackend.wingtechai.com/api/roles")
+    Axios.get("http://localhost:5000/api/roles")
       .then((res) => {
         console.log("Fetched roles data:", res.data);
         setRoles(res.data);
@@ -81,7 +81,7 @@ const UserTable: React.FC = () => {
 
   // Fetch departments from backend
   const fetchDepartments = () => {
-    Axios.get("https://hrbackend.wingtechai.com/api/departments")
+    Axios.get("http://localhost:5000/api/departments")
       .then((res) => {
         console.log("Fetched departments data:", res.data);
         setDepartments(res.data);
@@ -94,7 +94,7 @@ const UserTable: React.FC = () => {
   // Change user status
   const changeStatus = async (status: number, user_id: number | string) => {
     try {
-      const response = await fetch(`https://hrbackend.wingtechai.com/api/users/${user_id}/status`, {
+      const response = await fetch(`http://localhost:5000/api/users/${user_id}/status`, {
         method: "PUT",
         headers: { "Content-type": "application/json" },
         body: JSON.stringify({ status }),
@@ -150,7 +150,7 @@ const UserTable: React.FC = () => {
     };
 
     try {
-      const response = await Axios.put(`https://hrbackend.wingtechai.com/api/updateUser/${selectedUser.user_id}`, payload);
+      const response = await Axios.put(`http://localhost:5000/api/updateUser/${selectedUser.user_id}`, payload);
       console.log("Update response:", response.data);
       setFeedbackModalTitle('User Update');
       setFeedbackModalMessage(response.data.message || "User updated successfully.");

@@ -21,10 +21,11 @@ if (!process.env.PORT || !process.env.SESSION_SECRET) {
 // --- Import Routes ---
 const userRoutes = require("./routes/userRoutes.js");
 const employeeRoutes = require("./routes/employeeRoutes.js");
-const planRoutes = require("./routes/planRoutes.js");
-const analyticsRoutes = require("./routes/analyticRoutes.js");
+const analyticsRoutes  = require("./routes/analyticRoutes.js");
 const RecuitmentRoutes = require("./routes/RecuitmentRoutes.js");
-const queueRoutes = require("./routes/queueRoutes.js");
+const educationOfficeRoutes = require("./routes/educationOfficeRoutes.js");
+const enhancedAdminRoutes = require("./routes/enhancedAdminRoutes.js");
+const enhancedEmployeeRoutes = require("./routes/enhancedEmployeeRoutes.js");
 const authMiddleware = require("./middleware/authMiddleware.js");
 const loggingMiddleware = require("./middleware/loggingMiddleware.js");
 
@@ -67,7 +68,7 @@ const limiter = rateLimit({
     res.status(options.statusCode).json({ message: options.message });
   }
 });
-app.use(limiter);
+app.use(limiter); 
 
 // --- ✅ Session Configuration ---
 app.use(session({
@@ -98,9 +99,10 @@ app.get('/api', (req, res) => {
 app.use("/api", userRoutes);
 app.use("/api", employeeRoutes);
 app.use("/api", analyticsRoutes);
-app.use("/api", planRoutes);
 app.use("/api", RecuitmentRoutes);
-app.use("/api", queueRoutes);
+app.use("/api/education-office", educationOfficeRoutes);
+app.use("/api/admin", enhancedAdminRoutes);
+app.use("/api/employees", enhancedEmployeeRoutes);
 
 // --- ✅ Auth Routes ---
 app.post("/login", authMiddleware.login);

@@ -45,9 +45,9 @@ const getLogin = async (req, res) => {
         }
 
         const query = `
-          SELECT u.*, e.*
-          FROM users u 
-          LEFT JOIN employees e ON u.employee_id = e.employee_id 
+          SELECT u.*, e.*, u.status as user_status
+          FROM users u
+          LEFT JOIN employees e ON u.employee_id = e.employee_id
           WHERE u.user_name = ?
         `;
         const results = await db.query(query, [user_name]);
@@ -79,7 +79,7 @@ const getLogin = async (req, res) => {
 
         const passwordMatch = await bcrypt.compare(pass, user.password);
 
-        if (passwordMatch && user.status === '1') {
+        if (passwordMatch && user.user_status === '1') {
             // Reset failed_attempts and lock_until
             await db.query('UPDATE users SET failed_attempts=0, lock_until=NULL, online_flag=? WHERE user_id=?', [1, user.user_id]);
             // Log success

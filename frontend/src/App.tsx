@@ -24,6 +24,10 @@ import CareerPage from './components/recruitment/CareerPage';
 import EnhancedEmployeeProfile from './components/employee/EnhancedEmployeeProfile';
 import DepartmentManagement from './components/employee/DepartmentManagement';
 import RoleManagement from './components/employee/RoleManagement';
+import EnhancedEmployeeRegistration from './components/employee/EnhancedEmployeeRegistration';
+
+// Import education office components
+import EducationOfficeDashboard from './components/education-office/EducationOfficeDashboard';
 
 
 
@@ -231,6 +235,10 @@ const AppContent: React.FC = () => {
                         <Route path="/hrms/trainings" element={<ProtectedRoute role={3}><TrainingPage /></ProtectedRoute>} />
                         <Route path="/hrms/disciplinarys" element={<ProtectedRoute role={3}><DisciplinaryPage /></ProtectedRoute>} />
                         <Route path="/hrms/resignations" element={<ProtectedRoute role={3}><ResignationPage /></ProtectedRoute>} />
+
+                        {/* New Enhanced Features */}
+                        <Route path="/education-office-dashboard" element={<ProtectedRoute role={[1, 2]}><EducationOfficeDashboard /></ProtectedRoute>} />
+                        <Route path="/enhanced-employee-registration" element={<ProtectedRoute role={[1, 2]}><EnhancedEmployeeRegistration /></ProtectedRoute>} />
                     </Route>
                 </>
             )}

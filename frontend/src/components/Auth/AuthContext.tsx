@@ -4,7 +4,7 @@ import Axios from 'axios';
 // --- Configuration ---
 // Access environment variables using import.meta.env for Vite
 // Ensure VITE_API_URL is defined in your .env file
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://hrbackend.wingtechai.com";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 // --- Interfaces ---
 interface User {
     user_id: string | number;
@@ -131,7 +131,14 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const login = useCallback(async (credentials: Record<string, any>): Promise<{ success: boolean; message?: string }> => {
         dispatch({ type: 'SET_LOADING', payload: true });
         try {
+            console.log('🔗 Attempting login to:', `${API_BASE_URL}/login`);
+            console.log('📤 Login credentials:', { user_name: credentials.user_name, pass: '[HIDDEN]' });
+
             const response = await Axios.post<{ success: boolean; token?: string; user?: User; message?: string }>(`${API_BASE_URL}/login`, credentials);
+
+            console.log('📥 Login response status:', response.status);
+            console.log('📥 Login response data:', response.data);
+
             if (response.data.success && response.data.token && response.data.user) {
                 const { token, user } = response.data;
                 dispatch({ type: 'LOGIN', payload: { user, token } });
@@ -143,8 +150,27 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
         } catch (error: any) {
             console.error("Login Request Failed:", error);
-            const message = error.response?.data?.message || error.message || "Login failed due to a network or server error.";
-             dispatch({ type: 'SET_LOADING', payload: false });
+            console.error("Error details:", {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                message: error.message,
+                code: error.code
+            });
+
+            let message = "Login failed due to a network or server error.";
+
+            if (error.response?.status === 401) {
+                message = error.response?.data?.message || "Invalid username or password";
+            } else if (error.response?.status === 423) {
+                message = error.response?.data?.message || "Account is locked";
+            } else if (error.code === 'ECONNREFUSED') {
+                message = "Cannot connect to server. Please check if the backend is running.";
+            } else if (error.response?.data?.message) {
+                message = error.response.data.message;
+            }
+
+            dispatch({ type: 'SET_LOADING', payload: false });
             return { success: false, message };
         }
         // No finally block needed as SET_LOADING(false) is handled in error cases and LOGIN action
