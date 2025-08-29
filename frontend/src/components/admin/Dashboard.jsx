@@ -91,7 +91,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const res = await Axios.get('http://localhost:5000/api/login-analytics');
+        const res = await Axios.get('http://localhost:5001/api/login-analytics');
         setAnalytics(res.data);
       } catch (err) {
         setAnalytics(null);
@@ -99,7 +99,7 @@ const Dashboard = () => {
     };
     const fetchBlockedUsers = async () => {
       try {
-        const res = await Axios.get('http://localhost:5000/api/blocked-users');
+        const res = await Axios.get('http://localhost:5001/api/blocked-users');
         setBlockedUsers(res.data.blockedUsers || []);
       } catch (err) {
         setBlockedUsers([]);

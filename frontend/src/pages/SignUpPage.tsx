@@ -20,7 +20,7 @@ const SignUpPage: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
       const payload = { ...values, sex };
 
       // Use the correct endpoint and headers
-      const res = await axios.post('http://localhost:5000/api/signup', payload, {
+      const res = await axios.post('http://localhost:5001/api/signup', payload, {
         headers: { 'Content-Type': 'application/json' }
       });
 

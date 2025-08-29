@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Layout } from 'antd';
 import { useTheme } from '../../contexts/ThemeContext';
 import Header from './Header';
-import Sidebar from './Sidebar';
+import DynamicSidebar from './DynamicSidebar';
 import Footer from './Footer';
 import { useAuth } from '../Auth/AuthContext';
+
 const { Content } = Layout;
 
 interface MainLayoutProps {
@@ -15,6 +16,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
   const { isDarkMode } = useTheme();
   const {  } = useAuth();
+  
   const handleMenuClick = (key: string) => {
     // Menu click is now handled in the Sidebar component
     console.log('Menu clicked:', key);
@@ -43,11 +45,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         background: isDarkMode ? '#001529' : '#fff',
         borderRight: `1px solid ${isDarkMode ? '#303030' : '#f0f0f0'}`,
       }}>
-        <Sidebar 
+        <DynamicSidebar 
           collapsed={collapsed}
           onMenuClick={handleMenuClick}
         />
       </div>
+      
       {/* Main content area: margin-left for sidebar, scrollable content */}
       <Layout style={{
         marginLeft: collapsed ? 80 : 220,

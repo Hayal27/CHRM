@@ -60,6 +60,14 @@ const addEnhancedEmployee = async (req, res) => {
     console.log('  - full_name:', req.body.full_name);
     console.log('  - email:', req.body.email);
     console.log('  - employee_type:', req.body.employee_type);
+    console.log('  - employee_type type:', typeof req.body.employee_type);
+    console.log('  - employee_type JSON:', JSON.stringify(req.body.employee_type));
+    console.log('🔍 Specific fields:');
+    console.log('  - occupation_on_training:', req.body.occupation_on_training);
+    console.log('  - employed_work_process:', req.body.employed_work_process);
+    console.log('  - qualification_subject:', req.body.qualification_subject);
+    console.log('  - age:', req.body.age);
+    console.log('  - sex:', req.body.sex);
 
     // Input validation
     if (!full_name || !email || !employee_type) {
@@ -127,36 +135,56 @@ const addEnhancedEmployee = async (req, res) => {
             });
         }
 
-        // Create employee record with enhanced attributes
+        // Create employee record with enhanced attributes - matching actual table structure
+        const insertValues = [
+            full_name,                    // name (2)
+            role_id || null,              // role_id (3)
+            department_id || null,        // department_id (4)
+            null,                         // supervisor_id (5)
+            fname || null,                // fname (6)
+            lname || null,                // lname (7)
+            email,                        // email (8)
+            mobile || null,               // phone (9)
+            sex || null,                  // sex (10)
+            position || null,             // position (11)
+            dateOfJoining || null,        // dateOfJoining (12)
+            // status is set to 'Active' in query (13)
+            null,                         // profileImage (14)
+            college_id || null,           // college_id (15)
+            employee_type,                // employee_type (16)
+            age || null,                  // age (17)
+            year_of_birth || null,        // year_of_birth (18)
+            year_of_employment || null,   // year_of_employment (19)
+            qualification_level || null,  // qualification_level (20)
+            qualification_subject || null, // qualification_subject (21)
+            year_of_upgrading || null,    // year_of_upgrading (22)
+            competence_level || null,     // competence_level (23)
+            competence_occupation || null, // competence_occupation (24)
+            citizen_address || null,      // citizen_address (25)
+            mobile || null,               // mobile (26)
+            occupation_on_training || null, // occupation_on_training (27)
+            employed_work_process || null,  // employed_work_process (28)
+            qualification_subject || null, // specialization (29)
+            year_of_employment ? (new Date().getFullYear() - parseInt(year_of_employment)) : null, // years_of_experience (30)
+            null,                         // emergency_contact_name (31)
+            null,                         // emergency_contact_phone (32)
+            null,                         // emergency_contact_relationship (33)
+            req.user?.user_id || null     // created_by (34)
+            // document_path (35) - will be updated separately if file uploaded
+        ];
+
+        console.log('🔍 Insert values:', insertValues.map((val, idx) => `${idx}: ${val}`));
+
         const [employeeResult] = await connection.query(
             `INSERT INTO employees
-                (name, fname, lname, email, phone, sex, role_id, department_id, college_id,
-                 position, dateOfJoining, status, employee_type, specialization, qualification_level,
-                 years_of_experience, citizen_address, emergency_contact_name, emergency_contact_phone,
+                (name, role_id, department_id, supervisor_id, fname, lname, email, phone, sex, position,
+                 dateOfJoining, status, profileImage, college_id, employee_type, age, year_of_birth, year_of_employment,
+                 qualification_level, qualification_subject, year_of_upgrading, competence_level,
+                 competence_occupation, citizen_address, mobile, occupation_on_training, employed_work_process,
+                 specialization, years_of_experience, emergency_contact_name, emergency_contact_phone,
                  emergency_contact_relationship, created_by)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                full_name,
-                fname || null,
-                lname || null,
-                email,
-                mobile || null,
-                sex || null,
-                role_id || null,
-                department_id || null,
-                college_id || null,
-                position || null,
-                dateOfJoining || null,
-                employee_type,
-                qualification_subject || null,
-                qualification_level || null,
-                year_of_employment ? (new Date().getFullYear() - parseInt(year_of_employment)) : null,
-                citizen_address || null,
-                null, // emergency_contact_name - can be added to form later
-                null, // emergency_contact_phone - can be added to form later
-                null, // emergency_contact_relationship - can be added to form later
-                req.user?.user_id || null
-            ]
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            insertValues
         );
 
         const employee_id = employeeResult.insertId;
@@ -378,6 +406,9 @@ const updateEnhancedEmployee = async (req, res) => {
     const { employee_id } = req.params;
     const updateData = req.body;
 
+    console.log("🔄 Updating employee:", employee_id);
+    console.log("📝 Update data received:", updateData);
+
     if (!employee_id) {
         return res.status(400).json({
             success: false,
@@ -385,26 +416,63 @@ const updateEnhancedEmployee = async (req, res) => {
         });
     }
 
+    let connection;
+
     try {
-        // Build dynamic update query
+        connection = await db.pool.getConnection();
+        await connection.beginTransaction();
+
+        // Check if employee exists
+        const [existingEmployee] = await connection.query(
+            "SELECT employee_id, email FROM employees WHERE employee_id = ?",
+            [employee_id]
+        );
+
+        if (existingEmployee.length === 0) {
+            await connection.rollback();
+            return res.status(404).json({
+                success: false,
+                message: "Employee not found."
+            });
+        }
+
+        // Build dynamic update query with all enhanced fields
         const updateFields = [];
         const updateValues = [];
 
-        // Common fields that can be updated
+        // All fields that can be updated (including enhanced attributes)
         const allowedFields = [
-            'name', 'fname', 'lname', 'email', 'phone', 'sex', 
-            'position', 'dateOfJoining', 'status', 'role_id', 
-            'department_id', 'supervisor_id'
+            // Basic fields
+            "name", "fname", "lname", "email", "phone", "sex",
+            "position", "dateOfJoining", "status", "role_id",
+            "department_id", "supervisor_id", "college_id",
+            // Enhanced attributes
+            "employee_type", "age", "year_of_birth", "year_of_employment",
+            "qualification_level", "qualification_subject", "year_of_upgrading",
+            "competence_level", "competence_occupation", "citizen_address",
+            "mobile", "occupation_on_training", "employed_work_process"
         ];
 
-        allowedFields.forEach(field => {
-            if (updateData[field] !== undefined) {
-                updateFields.push(`${field} = ?`);
-                updateValues.push(updateData[field]);
+        // Handle special field mappings
+        const fieldMappings = {
+            "full_name": "name"
+        };
+
+        // Process each field
+        Object.keys(updateData).forEach(key => {
+            const dbField = fieldMappings[key] || key;
+            
+            if (allowedFields.includes(dbField) && updateData[key] !== undefined) {
+                updateFields.push(`${dbField} = ?`);
+                updateValues.push(updateData[key]);
+                console.log(`✅ Adding field: ${dbField} = ${updateData[key]}`);
+            } else if (key !== "employee_id") {
+                console.log(`⚠️ Skipping field: ${key} (not in allowed fields)`);
             }
         });
 
         if (updateFields.length === 0) {
+            await connection.rollback();
             return res.status(400).json({
                 success: false,
                 message: "No valid fields provided for update."
@@ -413,33 +481,49 @@ const updateEnhancedEmployee = async (req, res) => {
 
         updateValues.push(employee_id);
 
-        const [result] = await db.pool.query(
-            `UPDATE employees SET ${updateFields.join(', ')} WHERE employee_id = ?`,
-            updateValues
-        );
+        const updateQuery = `UPDATE employees SET ${updateFields.join(", ")} WHERE employee_id = ?`;
+        console.log("🔍 Update query:", updateQuery);
+        console.log("🔍 Update values:", updateValues);
+
+        const [result] = await connection.query(updateQuery, updateValues);
 
         if (result.affectedRows === 0) {
+            await connection.rollback();
             return res.status(404).json({
                 success: false,
-                message: "Employee not found."
+                message: "Employee not found or no changes made."
             });
         }
 
+        await connection.commit();
+
+        console.log("✅ Employee updated successfully");
+
         res.json({
             success: true,
-            message: "Employee updated successfully."
+            message: "Employee updated successfully.",
+            updated_fields: updateFields.length
         });
 
     } catch (error) {
-        console.error("Error updating enhanced employee:", error);
+        if (connection) {
+            await connection.rollback();
+        }
+
+        console.error("❌ Error updating enhanced employee:", error);
+
         res.status(500).json({
             success: false,
             message: "Error updating employee",
             error: error.message
         });
+
+    } finally {
+        if (connection) {
+            connection.release();
+        }
     }
 };
-
 /**
  * Get employee statistics by type
  */

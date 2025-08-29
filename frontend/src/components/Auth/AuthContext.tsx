@@ -4,7 +4,7 @@ import Axios from 'axios';
 // --- Configuration ---
 // Access environment variables using import.meta.env for Vite
 // Ensure VITE_API_URL is defined in your .env file
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
 // --- Interfaces ---
 interface User {
     user_id: string | number;

@@ -1,0 +1,776 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Card, 
+  Table, 
+  Button, 
+  Modal, 
+  Form, 
+  Input, 
+  Select, 
+  DatePicker, 
+  Upload, 
+  message, 
+  Space, 
+  Popconfirm, 
+  Typography, 
+  Row, 
+  Col,
+  Avatar,
+  Tabs,
+  Tag,
+  Tooltip,
+  Drawer,
+  Divider,
+  Radio
+} from 'antd';
+import { 
+  UserOutlined, 
+  PlusOutlined, 
+  EditOutlined, 
+  DeleteOutlined, 
+  SearchOutlined,
+  FilterOutlined,
+  ExportOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  TeamOutlined,
+  IdcardOutlined,
+  CalendarOutlined,
+  SafetyOutlined // <-- Add this import for role icon
+} from '@ant-design/icons';
+import axios from 'axios';
+import dayjs from 'dayjs';
+import * as XLSX from 'xlsx';
+
+const { Title, Text } = Typography;
+const { Option } = Select;
+const { TabPane } = Tabs;
+
+interface Employee {
+  id: number;
+  name: string;
+  fname?: string;
+  lname?: string;
+  sex?: string;
+  supervisor_id?: number | string;
+  supervisor_name?: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  department_id?: number;
+  department_name?: string;
+  role_id?: number;
+  role_name?: string;
+  position?: string;
+  date_of_joining: string;
+  status: 'Active' | 'Inactive';
+  profile_image?: string;
+  created_at: string;
+}
+
+interface Department {
+  id: number;
+  name: string;
+}
+
+interface Role {
+  id: number;
+  name: string;
+}
+
+interface Supervisor {
+  employee_id: number | string;
+  name: string;
+}
+
+const EnhancedEmployeeProfile: React.FC = () => {
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+  const [form] = Form.useForm();
+  const [filters, setFilters] = useState({
+    name: '',
+    department_id: undefined,
+    role_id: undefined,
+    status: undefined
+  });
+  const [activeTab, setActiveTab] = useState('all');
+
+  useEffect(() => {
+    fetchEmployees();
+    fetchDepartments();
+    fetchRoles();
+    fetchSupervisors();
+  }, []);
+
+  useEffect(() => {
+    fetchEmployees();
+  }, [filters, activeTab]);
+
+  const fetchEmployees = async () => {
+    try {
+      setLoading(true);
+      const params: any = { ...filters };
+      
+      if (activeTab === 'active') {
+        params.status = 'Active';
+      } else if (activeTab === 'inactive') {
+        params.status = 'Inactive';
+      }
+      
+      const response = await axios.get('/api/employees', {
+        params,
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      
+      setEmployees(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      message.error('Failed to load employees');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await axios.get('/api/departments', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setDepartments(response.data || []);
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      const response = await axios.get('/api/roles', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setRoles(response.data || []);
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+    }
+  };
+
+  const fetchSupervisors = async () => {
+    try {
+      const response = await axios.get('/api/supervisors', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setSupervisors(response.data || []);
+    } catch (error) {
+      console.error('Error fetching supervisors:', error);
+    }
+  };
+
+  const showAddModal = () => {
+    setEditingEmployee(null);
+    setImageUrl(undefined);
+    form.resetFields();
+    form.setFieldsValue({
+      status: 'Active',
+      date_of_joining: dayjs(),
+      sex: '',
+      supervisor_id: undefined
+    });
+    setModalVisible(true);
+  };
+
+  const showEditModal = (employee: Employee) => {
+    setEditingEmployee(employee);
+    setImageUrl(employee.profile_image);
+    form.setFieldsValue({
+      ...employee,
+      date_of_joining: employee.date_of_joining ? dayjs(employee.date_of_joining) : undefined,
+      department_id: employee.department_id,
+      role_id: employee.role_id,
+      sex: employee.sex || '',
+      supervisor_id: employee.supervisor_id
+    });
+    setModalVisible(true);
+  };
+
+  const showEmployeeDetails = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setDrawerVisible(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await axios.delete(`/api/employees/${id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      message.success('Employee deleted successfully');
+      fetchEmployees();
+    } catch (error) {
+      console.error('Error deleting employee:', error);
+      message.error('Failed to delete employee');
+    }
+  };
+
+  const handleSubmit = async (values: any) => {
+    try {
+      const formData = new FormData();
+
+      // Add all form fields to FormData
+      Object.keys(values).forEach(key => {
+        if (key === 'date_of_joining' && values[key]) {
+          formData.append(key, values[key].format('YYYY-MM-DD'));
+        } else if (values[key] !== undefined) {
+          formData.append(key, values[key]);
+        }
+      });
+
+      // Add profile image if changed
+      if (values.profile_image && values.profile_image.file) {
+        formData.append('profile_image', values.profile_image.file);
+      }
+
+      // Add fname/lname/sex/supervisor_id if present
+      if (values.fname) formData.append('fname', values.fname);
+      if (values.lname) formData.append('lname', values.lname);
+      if (values.sex) formData.append('sex', values.sex);
+      if (values.supervisor_id) formData.append('supervisor_id', values.supervisor_id);
+
+      if (editingEmployee) {
+        await axios.put(`/api/employees/${editingEmployee.id}`, formData, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        message.success('Employee updated successfully');
+      } else {
+        await axios.post('/api/employees', formData, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        message.success('Employee added successfully');
+      }
+      
+      setModalVisible(false);
+      form.resetFields();
+      fetchEmployees();
+    } catch (error) {
+      console.error('Error saving employee:', error);
+      message.error('Failed to save employee');
+    }
+  };
+
+  // Image upload handler
+  const beforeUpload = (file: File) => {
+    const isImage = file.type.startsWith('image/');
+    if (!isImage) {
+      message.error('You can only upload image files!');
+      return false;
+    }
+    
+    const isLt2M = file.size / 1024 / 1024 < 2;
+    if (!isLt2M) {
+      message.error('Image must be smaller than 2MB!');
+      return false;
+    }
+    
+    // Preview the image
+    const reader = new FileReader();
+    reader.onload = e => {
+      setImageUrl(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    
+    // Return false to prevent automatic upload
+    return false;
+  };
+
+  // Export to Excel
+  const handleExport = () => {
+    const exportData = employees.map(emp => ({
+      'Name': emp.name,
+      'Email': emp.email,
+      'Phone': emp.phone || '',
+      'Department': emp.department_name || '',
+      'Position': emp.position || '',
+      'Role': emp.role_name || '',
+      'Joining Date': emp.date_of_joining ? new Date(emp.date_of_joining).toLocaleDateString() : '',
+      'Status': emp.status
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Employees');
+    XLSX.writeFile(wb, 'employees.xlsx');
+  };
+
+  // Reset filters
+  const resetFilters = () => {
+    setFilters({
+      name: '',
+      department_id: undefined,
+      role_id: undefined,
+      status: undefined
+    });
+  };
+
+  const columns = [
+    {
+      title: 'Employee',
+      key: 'employee',
+      render: (record: Employee) => (
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <Avatar
+            src={record.profile_image}
+            icon={<UserOutlined />}
+            size={40}
+            style={{ marginRight: '12px' }}
+          />
+          <div>
+            <div style={{ fontWeight: 'bold' }}>{record.name}</div>
+            <div style={{ fontSize: '12px', color: '#666' }}>{record.position || 'No position'}</div>
+          </div>
+        </div>
+      )
+    },
+    {
+      title: 'Contact',
+      key: 'contact',
+      render: (record: Employee) => (
+        <div>
+          <div><MailOutlined style={{ marginRight: '8px' }} />{record.email}</div>
+          <div><PhoneOutlined style={{ marginRight: '8px' }} />{record.phone || 'N/A'}</div>
+        </div>
+      )
+    },
+    {
+      title: 'Department',
+      dataIndex: 'department_name',
+      key: 'department_name',
+      render: (text: string) => text || 'Not assigned'
+    },
+    {
+      title: 'Role',
+      dataIndex: 'role_name',
+      key: 'role_name',
+      render: (text: string) => text || 'Not assigned'
+    },
+    {
+      title: 'Joining Date',
+      dataIndex: 'date_of_joining',
+      key: 'date_of_joining',
+      render: (date: string) => date ? new Date(date).toLocaleDateString() : 'N/A'
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: string) => (
+        <Tag color={status === 'Active' ? 'green' : 'red'}>
+          {status}
+        </Tag>
+      )
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_: any, record: Employee) => (
+        <Space>
+          <Tooltip title="View Details">
+            <Button 
+              icon={<UserOutlined />} 
+              size="small"
+              onClick={() => showEmployeeDetails(record)}
+            />
+          </Tooltip>
+          <Tooltip title="Edit">
+            <Button 
+              icon={<EditOutlined />} 
+              size="small"
+              onClick={() => showEditModal(record)}
+            />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Popconfirm
+              title="Delete this employee?"
+              description="This action cannot be undone."
+              onConfirm={() => handleDelete(record.id)}
+              okText="Yes"
+              cancelText="No"
+            >
+              <Button 
+                icon={<DeleteOutlined />} 
+                size="small" 
+                danger
+              />
+            </Popconfirm>
+          </Tooltip>
+        </Space>
+      )
+    }
+  ];
+
+  return (
+    <div style={{ padding: '24px' }}>
+      <Row gutter={[0, 24]}>
+        <Col span={24}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Title level={2}>Employee Profiles</Title>
+            <Space>
+              <Button 
+                icon={<ExportOutlined />} 
+                onClick={handleExport}
+              >
+                Export to Excel
+              </Button>
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />}
+                onClick={showAddModal}
+              >
+                Add Employee
+              </Button>
+            </Space>
+          </div>
+        </Col>
+        
+        <Col span={24}>
+          <Card>
+            <div style={{ marginBottom: '16px' }}>
+              <Tabs 
+                activeKey={activeTab} 
+                onChange={setActiveTab}
+              >
+                <TabPane tab="All Employees" key="all" />
+                <TabPane tab="Active" key="active" />
+                <TabPane tab="Inactive" key="inactive" />
+              </Tabs>
+            </div>
+            
+            <div style={{ marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              <Input
+                placeholder="Search by name or email"
+                value={filters.name}
+                onChange={e => setFilters({ ...filters, name: e.target.value })}
+                style={{ width: '250px' }}
+                prefix={<SearchOutlined />}
+                allowClear
+              />
+              
+              <Select
+                placeholder="Department"
+                value={filters.department_id}
+                onChange={value => setFilters({ ...filters, department_id: value })}
+                style={{ width: '180px' }}
+                allowClear
+              {Array.isArray(departments) && departments.map(dept => (
+                  <Option key={dept.id} value={dept.id}>{dept.name}</Option>
+                ))}
+              </Select>
+              
+              <Select
+                placeholder="Role"
+                value={filters.role_id}
+                onChange={value => setFilters({ ...filters, role_id: value })}
+                style={{ width: '180px' }}
+                allowClear
+              >
+                {roles.map(role => (
+                  <Option key={role.id} value={role.id}>{role.name}</Option>
+                ))}
+              </Select>
+              
+              <Button 
+                icon={<FilterOutlined />} 
+                onClick={resetFilters}
+              >
+                Reset Filters
+              </Button>
+            </div>
+            
+            <Table
+              columns={columns}
+              dataSource={employees}
+              rowKey="id"
+              loading={loading}
+              pagination={{ pageSize: 10, showSizeChanger: true }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Add/Edit Employee Modal */}
+      <Modal
+        title={editingEmployee ? 'Edit Employee' : 'Add Employee'}
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        footer={null}
+        width={800}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+        >
+          <Row gutter={16}>
+            <Col span={24} style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <Form.Item name="profile_image">
+                <Upload
+                  name="profile_image"
+                  listType="picture-circle"
+                  showUploadList={false}
+                  beforeUpload={beforeUpload}
+                  accept="image/*"
+                >
+                  {imageUrl ? (
+                    <Avatar 
+                      src={imageUrl} 
+                      size={100} 
+                      style={{ border: '1px solid #d9d9d9' }}
+                    />
+                  ) : (
+                    <div>
+                      <PlusOutlined />
+                      <div style={{ marginTop: 8 }}>Upload Photo</div>
+                    </div>
+                  )}
+                </Upload>
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="fname"
+                label="First Name"
+                rules={[{ required: true, message: 'Please enter first name' }]}
+              >
+                <Input placeholder="First name" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="lname"
+                label="Last Name"
+                rules={[{ required: true, message: 'Please enter last name' }]}
+              >
+                <Input placeholder="Last name" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="name"
+                label="User Name"
+                rules={[{ required: true, message: 'Please enter user name' }]}
+              >
+                <Input prefix={<UserOutlined />} placeholder="User name" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="email"
+                label="Email"
+                rules={[
+                  { required: true, message: 'Please enter email' },
+                  { type: 'email', message: 'Please enter a valid email' }
+                ]}
+              >
+                <Input prefix={<MailOutlined />} placeholder="Email address" />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="phone"
+                label="Phone"
+                rules={[{ required: true, message: 'Please enter phone number' }]}
+              >
+                <Input prefix={<PhoneOutlined />} placeholder="Phone number" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="sex"
+                label="Sex"
+                rules={[{ required: true, message: 'Please select sex' }]}
+              >
+                <Select placeholder="Select sex">
+                  <Option value="M">Male</Option>
+                  <Option value="F">Female</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="date_of_joining"
+                label="Date of Joining"
+                rules={[{ required: true, message: 'Please select joining date' }]}
+              >
+                <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="supervisor_id"
+                label="Supervisor (Optional)"
+              >
+                <Select placeholder="Select supervisor (Optional)" allowClear>
+                  {supervisors.map(sup => (
+                    <Option key={sup.employee_id} value={sup.employee_id}>{sup.name}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="department_id"
+                label="Department"
+              >
+                <Select placeholder="Select department">
+                  {departments.map(dept => (
+                    <Option key={dept.id} value={dept.id}>{dept.name}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="role_id"
+                label="Role"
+                rules={[{ required: true, message: 'Please select a role' }]}
+              >
+                <Select placeholder="Select role">
+                  {roles.map(role => (
+                    <Option key={role.id} value={role.id}>{role.name}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="position"
+                label="Position"
+              >
+                <Input placeholder="Job position" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="status"
+                label="Status"
+                rules={[{ required: true, message: 'Please select status' }]}
+              >
+                <Radio.Group>
+                  <Radio value="Active">Active</Radio>
+                  <Radio value="Inactive">Inactive</Radio>
+                </Radio.Group>
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Form.Item
+            name="address"
+            label="Address"
+          >
+            <Input.TextArea rows={3} placeholder="Full address" />
+          </Form.Item>
+          
+          <Form.Item>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button onClick={() => setModalVisible(false)} style={{ marginRight: 8 }}>
+                Cancel
+              </Button>
+              <Button type="primary" htmlType="submit">
+                {editingEmployee ? 'Update' : 'Add'} Employee
+              </Button>
+            </div>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Employee Details Drawer */}
+      <Drawer
+        title="Employee Details"
+        placement="right"
+        onClose={() => setDrawerVisible(false)}
+        open={drawerVisible}
+        width={500}
+      >
+        {selectedEmployee && (
+          <div>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <Avatar
+                src={selectedEmployee.profile_image}
+                icon={<UserOutlined />}
+                size={100}
+              />
+              <Title level={4} style={{ marginTop: '16px', marginBottom: '4px' }}>
+                {selectedEmployee.name}
+              </Title>
+              <Text type="secondary">{selectedEmployee.position || 'No position'}</Text>
+              
+              <div style={{ marginTop: '8px' }}>
+                <Tag color={selectedEmployee.status === 'Active' ? 'green' : 'red'}>
+                  {selectedEmployee.status}
+                </Tag>
+              </div>
+            </div>
+            
+            <Divider orientation="left">Personal Information</Divider>
+            <p><strong>First Name:</strong> {selectedEmployee.fname || '-'}</p>
+            <p><strong>Last Name:</strong> {selectedEmployee.lname || '-'}</p>
+            <p><strong>Sex:</strong> {selectedEmployee.sex === 'M' ? 'Male' : selectedEmployee.sex === 'F' ? 'Female' : '-'}</p>
+
+            <Divider orientation="left">Contact Information</Divider>
+            <p><MailOutlined style={{ marginRight: '8px' }} /> {selectedEmployee.email}</p>
+            <p><PhoneOutlined style={{ marginRight: '8px' }} /> {selectedEmployee.phone || 'Not provided'}</p>
+            <p><IdcardOutlined style={{ marginRight: '8px' }} /> {selectedEmployee.address || 'Not provided'}</p>
+
+            <Divider orientation="left">Employment Details</Divider>
+            <p><TeamOutlined style={{ marginRight: '8px' }} /> <strong>Department:</strong> {selectedEmployee.department_name || 'Not assigned'}</p>
+            <p><SafetyOutlined style={{ marginRight: '8px' }} /> <strong>Role:</strong> {selectedEmployee.role_name || 'Not assigned'}</p>
+            <p><CalendarOutlined style={{ marginRight: '8px' }} /> <strong>Joined:</strong> {selectedEmployee.date_of_joining ? new Date(selectedEmployee.date_of_joining).toLocaleDateString() : 'N/A'}</p>
+            <p><strong>Supervisor:</strong> {selectedEmployee.supervisor_name || '-'}</p>
+
+            <Divider />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Button onClick={() => setDrawerVisible(false)}>Close</Button>
+              <Button type="primary" onClick={() => {
+                setDrawerVisible(false);
+                showEditModal(selectedEmployee);
+              }}>
+                Edit
+              </Button>
+            </div>
+          </div>
+        )}
+      </Drawer>
+    </div>
+  );
+};
+
+export default EnhancedEmployeeProfile;

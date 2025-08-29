@@ -39,9 +39,15 @@ const {
     addEnhancedEmployee,
     getAllEnhancedEmployees,
     getEnhancedEmployeeById,
-    updateEnhancedEmployee,
+    verifyToken, updateEnhancedEmployee,
     getEmployeeStatistics
 } = require('../controllers/enhancedEmployeeController');
+
+const {
+    uploadEmployeeProfileImage,
+    getEmployeeProfileImage,
+    deleteEmployeeProfileImage
+} = require("../controllers/profileImageController");
 
 // =====================================================
 // ENHANCED EMPLOYEE MODULE ROUTES
@@ -91,6 +97,31 @@ router.put('/enhanced/:employee_id', verifyToken, updateEnhancedEmployee);
  * @access Private
  */
 router.get('/enhanced/statistics/overview', verifyToken, getEmployeeStatistics);
+
+// =====================================================
+// PROFILE IMAGE ROUTES
+// =====================================================
+
+/**
+ * @route POST /api/employees/enhanced/:employee_id/profile-image
+ * @desc Upload profile image for employee
+ * @access Private
+ */
+router.post("/enhanced/:employee_id/profile-image", uploadEmployeeProfileImage);
+
+/**
+ * @route GET /api/employees/enhanced/:employee_id/profile-image
+ * @desc Get profile image for employee
+ * @access Private
+ */
+router.get("/enhanced/:employee_id/profile-image", getEmployeeProfileImage);
+
+/**
+ * @route DELETE /api/employees/enhanced/:employee_id/profile-image
+ * @desc Delete profile image for employee
+ * @access Private
+ */
+router.delete("/enhanced/:employee_id/profile-image", deleteEmployeeProfileImage);
 
 // =====================================================
 // TRAINER-SPECIFIC ROUTES

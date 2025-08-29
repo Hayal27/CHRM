@@ -33,18 +33,6 @@ const addEmployee = async (req, res) => {
         });
     }
 
-    // NOTE: You must update your Employees table to include:
-    // - position VARCHAR
-    // - dateOfJoining DATE
-    // - status ENUM('Active','Inactive')
-    // - avatar TEXT (for base64 or URL)
-    // Example SQL:
-    // ALTER TABLE Employees
-    //   ADD COLUMN position VARCHAR(100),
-    //   ADD COLUMN dateOfJoining DATE,
-    //   ADD COLUMN status ENUM('Active','Inactive') DEFAULT 'Active',
-    //   ADD COLUMN avatar TEXT;
-
     let connection;
 
     try {
@@ -57,11 +45,10 @@ const addEmployee = async (req, res) => {
             return res.status(409).json({ success: false, message: "An employee with this email already exists." });
         }
 
-        // Remove status and avatar from Employees insert
         const [employeeResult] = await connection.query(
-            `INSERT INTO Employees 
-                (name, role_id, department_id, supervisor_id, fname, lname, email, phone, sex, position, dateOfJoining)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO employees 
+                (name, role_id, department_id, supervisor_id, fname, lname, email, phone, sex, position, dateOfJoining, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 name,
                 role_id,
@@ -73,7 +60,8 @@ const addEmployee = async (req, res) => {
                 phone,
                 sex,
                 position || null,
-                dateOfJoining || null
+                dateOfJoining || null,
+                status || 'Active'
             ]
         );
 
@@ -82,7 +70,6 @@ const addEmployee = async (req, res) => {
         const defaultPassword = 'Hrm@123';
         const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
-        // Add status and avatar to Users insert
         await connection.query(
             'INSERT INTO users (employee_id, user_name, password, role_id, department_id, status, avatar_url) VALUES (?, ?, ?, ?, ?, ?, ?)',
             [
@@ -91,7 +78,7 @@ const addEmployee = async (req, res) => {
                 hashedPassword,
                 role_id,
                 department_id || null,
-                status || 'Active', // <-- fix default value to 'Active'
+                status || 'Active',
                 avatar || null
             ]
         );
@@ -178,11 +165,11 @@ const jobSeekerSignUp = async (req, res) => {
         );
         const applicant_id = applicantResult.insertId;
 
-        // Insert into Employees (only provided fields, rest null)
+        // Insert into employees
         const [employeeResult] = await connection.query(
-            `INSERT INTO Employees 
-                (fname, lname, email, phone, sex, role_id, name, department_id, supervisor_id, position, dateOfJoining)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO employees 
+                (fname, lname, email, phone, sex, role_id, name, department_id, supervisor_id, position, dateOfJoining, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 fname,
                 lname,
@@ -194,7 +181,8 @@ const jobSeekerSignUp = async (req, res) => {
                 null, // department_id
                 null, // supervisor_id
                 null, // position
-                null  // dateOfJoining
+                null,  // dateOfJoining
+                'Active' // status
             ]
         );
         const employee_id = employeeResult.insertId;
@@ -204,8 +192,8 @@ const jobSeekerSignUp = async (req, res) => {
         const role_id = 6; // Role for Job Seeker
 
         await connection.query(
-            'INSERT INTO users (employee_id, user_name, password, role_id) VALUES (?, ?, ?, ?)',
-            [employee_id, email, hashedPassword, role_id]
+            'INSERT INTO users (employee_id, user_name, password, role_id, status) VALUES (?, ?, ?, ?, ?)',
+            [employee_id, email, hashedPassword, role_id, 'Active']
         );
 
         await connection.commit();
@@ -245,7 +233,7 @@ const jobSeekerSignUp = async (req, res) => {
 
 const getAllDepartments = async (req, res) => {
     try {
-        const [results] = await db.pool.query('SELECT * FROM departments');
+        const [results] = await db.pool.query('SELECT department_id, name FROM departments ORDER BY name');
         res.json(results);
     } catch (err) {
         console.error('Error fetching departments:', { code: err.code, message: err.message });
@@ -255,7 +243,7 @@ const getAllDepartments = async (req, res) => {
 
 const getAllRoles = async (req, res) => {
     try {
-        const [results] = await db.pool.query('SELECT * FROM roles');
+        const [results] = await db.pool.query('SELECT role_id, role_name FROM roles ORDER BY role_name');
         res.json(results);
     } catch (err) {
         console.error('Error fetching roles:', { code: err.code, message: err.message });
@@ -265,7 +253,15 @@ const getAllRoles = async (req, res) => {
 
 const getAllSupervisors = async (req, res) => {
     try {
-        const [results] = await db.pool.query('SELECT employee_id, fname, lname FROM employees');
+        const [results] = await db.pool.query(`
+            SELECT 
+                employee_id, 
+                CONCAT(COALESCE(fname, ''), ' ', COALESCE(lname, '')) as name,
+                name as user_name
+            FROM employees 
+            WHERE status = 'Active'
+            ORDER BY name
+        `);
         res.json(results);
     } catch (err) {
         console.error('Error fetching supervisors:', { code: err.code, message: err.message });
@@ -315,26 +311,125 @@ const changePassword = async (req, res) => {
 
 const getAllEmployees = async (req, res) => {
     try {
-        // Join Employees and Users to get status and avatar_url
+        console.log('📋 Fetching all employees...');
+
+        // Simple query to get basic employee data based on actual table structure
         const [results] = await db.pool.query(`
             SELECT 
-                e.employee_id AS id,
+                e.employee_id,
                 e.name,
+                e.fname,
+                e.lname,
                 e.email,
-                e.department_id,
-                d.name AS department,
+                e.phone,
+                e.mobile,
+                e.sex,
                 e.position,
                 e.dateOfJoining,
-                u.status,
-                u.avatar_url AS profileImage
-            FROM Employees e
-            LEFT JOIN users u ON e.employee_id = u.employee_id
+                e.status,
+                e.department_id,
+                e.role_id,
+                e.employee_type,
+                e.age,
+                e.qualification_level,
+                e.qualification_subject,
+                e.competence_level,
+                e.competence_occupation,
+                e.occupation_on_training,
+                e.employed_work_process,
+                e.citizen_address,
+                d.name AS department_name,
+                r.role_name,
+                e.profileImage
+            FROM employees e
             LEFT JOIN departments d ON e.department_id = d.department_id
+            LEFT JOIN roles r ON e.role_id = r.role_id
+            WHERE e.employee_id IS NOT NULL
+            ORDER BY e.name ASC
+            LIMIT 100
         `);
-        res.json({ employees: results });
+        
+        console.log(`✅ Successfully fetched ${results.length} employees`);
+        
+        // Transform the data to match frontend expectations
+        const transformedResults = results.map(emp => ({
+            employee_id: emp.employee_id,
+            id: emp.employee_id, // For backward compatibility
+            full_name: emp.name || `${emp.fname || ''} ${emp.lname || ''}`.trim(),
+            name: emp.name,
+            fname: emp.fname,
+            lname: emp.lname,
+            email: emp.email,
+            mobile: emp.mobile || emp.phone,
+            phone: emp.phone,
+            sex: emp.sex,
+            position: emp.position,
+            dateOfJoining: emp.dateOfJoining,
+            date_of_joining: emp.dateOfJoining, // For backward compatibility
+            status: emp.status || 'Active',
+            department_id: emp.department_id,
+            department_name: emp.department_name,
+            role_id: emp.role_id,
+            role_name: emp.role_name,
+            employee_type: emp.employee_type,
+            age: emp.age,
+            qualification_level: emp.qualification_level,
+            qualification_subject: emp.qualification_subject,
+            competence_level: emp.competence_level,
+            competence_occupation: emp.competence_occupation,
+            occupation_on_training: emp.occupation_on_training,
+            employed_work_process: emp.employed_work_process,
+            citizen_address: emp.citizen_address,
+            profileImage: emp.profileImage,
+            profile_image: emp.profileImage // For backward compatibility
+        }));
+
+        res.json({ 
+            success: true, 
+            employees: transformedResults,
+            total: transformedResults.length,
+            message: 'Employees fetched successfully'
+        });
+
     } catch (err) {
-        console.error('Error fetching employees:', { code: err.code, message: err.message });
-        res.status(500).json({ success: false, message: 'Error fetching employees' });
+        console.error('❌ Error fetching employees:', { 
+            code: err.code, 
+            message: err.message, 
+            stack: err.stack 
+        });
+        
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error fetching employees',
+            error: err.message,
+            code: err.code
+        });
+    }
+};
+
+// Simple test endpoint to check database connectivity
+const testDatabase = async (req, res) => {
+    try {
+        const [result] = await db.pool.query('SELECT 1 as test');
+        const [tableCount] = await db.pool.query(`
+            SELECT COUNT(*) as table_count 
+            FROM INFORMATION_SCHEMA.TABLES 
+            WHERE TABLE_SCHEMA = DATABASE()
+        `);
+        
+        res.json({
+            success: true,
+            message: 'Database connection successful',
+            test_query: result[0],
+            total_tables: tableCount[0].table_count
+        });
+    } catch (error) {
+        console.error('Database test failed:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Database connection failed',
+            error: error.message
+        });
     }
 };
 
@@ -346,4 +441,5 @@ module.exports = {
     changePassword,
     jobSeekerSignUp,
     getAllEmployees,
+    testDatabase
 };

@@ -79,7 +79,7 @@ const DashboardOverviewPage: React.FC = () => {
       case 6: // Agent
         return {
           totalBookings: faker.number.int({ min: 10, max: 80 }),
-          revenue: faker.number.int({ min: 1000, max: 5000 }),
+          revenue: faker.number.int({ min: 1000, max: 5001 }),
           ticketsSold: faker.number.int({ min: 30, max: 200 }),
         };
       default:

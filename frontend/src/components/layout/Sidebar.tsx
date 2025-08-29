@@ -18,6 +18,12 @@ import {
   LineChartOutlined,
   WarningOutlined,
   InboxOutlined,
+  BankOutlined,
+  ExperimentOutlined,
+  DatabaseOutlined,
+  UserAddOutlined,
+  ApartmentOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../Auth/AuthContext';
@@ -61,6 +67,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onMenuClick }) => {
     // Core HR
     const coreHR: MenuItem[] = [
       { key: 'employee', icon: <IdcardOutlined />, label: 'Employee Profiles' },
+      { key: 'enhanced-employee-profile', icon: <UserOutlined />, label: 'Enhanced Employee Profile' },
+      { key: 'department-management', icon: <ApartmentOutlined />, label: 'Department Management' },
+      { key: 'role-management', icon: <SafetyOutlined />, label: 'Role Management' },
+      { key: 'enhanced-employee-registration', icon: <UserAddOutlined />, label: 'Enhanced Employee Registration' },
       { key: 'attendance', icon: <CalendarOutlined />, label: 'Attendance' },
       { key: 'leave', icon: <FileTextOutlined />, label: 'Leave Management' },
       { key: 'payroll', icon: <MoneyCollectOutlined />, label: 'Payroll' },
@@ -184,6 +194,18 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onMenuClick }) => {
       case 'employee':
         navigate('/hrms/employee');
         break;
+      case 'enhanced-employee-profile':
+        navigate('/hrms/employee/enhanced');
+        break;
+      case 'department-management':
+        navigate('/hrms/employee/departments');
+        break;
+      case 'role-management':
+        navigate('/hrms/employee/roles');
+        break;
+      case 'enhanced-employee-registration':
+        navigate('/enhanced-employee-registration');
+        break;
       case 'attendance':
         navigate('/hrms/attendance');
         break;
@@ -247,6 +269,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onMenuClick }) => {
     if (path === '/hrms/recruitment') return 'recruitment';
     if (path === '/hrms/onboarding') return 'onboarding';
     if (path === '/hrms/employee') return 'employee';
+    if (path === '/hrms/employee/enhanced') return 'enhanced-employee-profile';
+    if (path === '/hrms/employee/departments') return 'department-management';
+    if (path === '/hrms/employee/roles') return 'role-management';
+    if (path === '/enhanced-employee-registration') return 'enhanced-employee-registration';
     if (path === '/hrms/attendance') return 'attendance';
     if (path === '/hrms/leave') return 'leave';
     if (path === '/hrms/payroll') return 'payroll';

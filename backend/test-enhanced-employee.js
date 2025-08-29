@@ -38,7 +38,7 @@ async function testEnhancedEmployeeRegistration() {
         formData.append('document', fs.createReadStream(testDocPath));
 
         // Get a valid token (you'll need to replace this with actual login)
-        const loginResponse = await axios.post('http://localhost:5000/login', {
+        const loginResponse = await axios.post('http://localhost:5001/login', {
             user_name: 'hayal@itp.it',
             pass: 'itp@123'
         });
@@ -54,7 +54,7 @@ async function testEnhancedEmployeeRegistration() {
         console.log('📤 Creating enhanced employee with document...');
         
         const response = await axios.post(
-            'http://localhost:5000/api/employees/enhanced/add',
+            'http://localhost:5001/api/employees/enhanced/add',
             formData,
             {
                 headers: {

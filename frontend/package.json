@@ -13,12 +13,13 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
-    "@ant-design/charts": "^2.6.0",
+    "@ant-design/charts": "^2.6.2",
     "@ant-design/icons": "^5.6.1",
     "@chapa_et/inline.js": "^1.0.1",
     "@faker-js/faker": "^9.8.0",
     "@types/qrcode.react": "^1.0.5",
     "antd": "^5.12.8",
+    "antd-img-crop": "^4.25.0",
     "axios": "^1.9.0",
     "bootstrap": "^5.3.0",
     "chart.js": "^4.4.9",
@@ -36,9 +37,10 @@
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^18.2.0",
     "react-icons": "^5.5.0",
+    "react-image-crop": "^11.0.10",
     "react-router-dom": "^6.20.1",
     "react-to-print": "^3.1.0",
-    "recharts": "^2.8.0",
+    "recharts": "^2.15.4",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

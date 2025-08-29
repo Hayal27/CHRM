@@ -149,7 +149,7 @@ const SignUpPage: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
     const onFinish = async (values: any) => {
         setLoading(true);
         try {
-            const res = await axios.post('http://localhost:5000/api/signup', values);
+            const res = await axios.post('http://localhost:5001/api/signup', values);
             message.success(res.data.message || 'Sign up successful!');
             if (onSuccess) onSuccess();
         } catch (err: any) {

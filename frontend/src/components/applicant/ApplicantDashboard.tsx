@@ -97,7 +97,7 @@ const ApplicantDashboard: React.FC = () => {
       const token = localStorage.getItem('token');
       // Use /api/applications for authenticated job vacancies if needed, but typically vacancies are public
       // If you want to restrict, use /api/vacancies with token
-      const response = await axios.get('http://localhost:5000/api/vacancies', {
+      const response = await axios.get('http://localhost:5001/api/vacancies', {
         params,
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -114,7 +114,7 @@ const ApplicantDashboard: React.FC = () => {
       setLoadingApps(true);
       const token = localStorage.getItem('token');
       // Use /api/applications for authenticated user's applications
-      const response = await axios.get('http://localhost:5000/api/applications', {
+      const response = await axios.get('http://localhost:5001/api/applications', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setApplications(response.data.applications || []);
@@ -145,7 +145,7 @@ const ApplicantDashboard: React.FC = () => {
       };
       const token = localStorage.getItem('token');
       // 1. Submit application
-      const response = await axios.post('http://localhost:5000/api/applications', applicationData, {
+      const response = await axios.post('http://localhost:5001/api/applications', applicationData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const application_id = response.data.application_id;
@@ -153,7 +153,7 @@ const ApplicantDashboard: React.FC = () => {
       if (values.cv_file && application_id) {
         const formData = new FormData();
         formData.append('cv', values.cv_file.file);
-        await axios.post(`http://localhost:5000/api/applications/${application_id}/cv`, formData, {
+        await axios.post(`http://localhost:5001/api/applications/${application_id}/cv`, formData, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data'

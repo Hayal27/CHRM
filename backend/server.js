@@ -26,6 +26,7 @@ const RecuitmentRoutes = require("./routes/RecuitmentRoutes.js");
 const educationOfficeRoutes = require("./routes/educationOfficeRoutes.js");
 const enhancedAdminRoutes = require("./routes/enhancedAdminRoutes.js");
 const enhancedEmployeeRoutes = require("./routes/enhancedEmployeeRoutes.js");
+const menuRoutes = require("./routes/menuRoutes.js");
 const authMiddleware = require("./middleware/authMiddleware.js");
 const loggingMiddleware = require("./middleware/loggingMiddleware.js");
 
@@ -103,6 +104,7 @@ app.use("/api", RecuitmentRoutes);
 app.use("/api/education-office", educationOfficeRoutes);
 app.use("/api/admin", enhancedAdminRoutes);
 app.use("/api/employees", enhancedEmployeeRoutes);
+app.use("/api/menu", menuRoutes);
 
 // --- ✅ Auth Routes ---
 app.post("/login", authMiddleware.login);

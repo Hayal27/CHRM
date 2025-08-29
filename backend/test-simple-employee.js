@@ -6,7 +6,7 @@ async function testSimpleEmployeeRegistration() {
         console.log('🧪 Testing Simple Enhanced Employee Registration...\n');
 
         // Get a valid token
-        const loginResponse = await axios.post('http://localhost:5000/login', {
+        const loginResponse = await axios.post('http://localhost:5001/login', {
             user_name: 'hayal@itp.it',
             pass: 'itp@123'
         });
@@ -42,7 +42,7 @@ async function testSimpleEmployeeRegistration() {
         };
 
         const response = await axios.post(
-            'http://localhost:5000/api/employees/enhanced/add',
+            'http://localhost:5001/api/employees/enhanced/add',
             employeeData,
             {
                 headers: {

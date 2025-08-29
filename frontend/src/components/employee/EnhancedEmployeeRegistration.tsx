@@ -64,10 +64,32 @@ const EnhancedEmployeeRegistration: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [colleges, setColleges] = useState<College[]>([]);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [formData, setFormData] = useState<any>({}); // Store all form data across steps
+  const [calculatedAge, setCalculatedAge] = useState<number | null>(null);
 
   useEffect(() => {
     fetchFormData();
   }, []);
+
+  
+  // Function to calculate age from birth year
+  const calculateAge = (birthYear: number) => {
+    const currentYear = new Date().getFullYear();
+    return currentYear - birthYear;
+  };
+
+  // Handle year of birth change and auto-calculate age
+  const handleYearOfBirthChange = (value: number | null) => {
+    if (value) {
+      const age = calculateAge(value);
+      setCalculatedAge(age);
+      // Update the form field
+      form.setFieldsValue({ age: age });
+    } else {
+      setCalculatedAge(null);
+      form.setFieldsValue({ age: null });
+    }
+  };
 
   const fetchFormData = async () => {
     try {
@@ -104,9 +126,27 @@ const EnhancedEmployeeRegistration: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
 
+            // Combine all form data from all steps
+      const allFormData = {
+        ...formData,
+        ...values
+      };
+
+      // Ensure employee_type is a valid string
+      const validEmployeeType = typeof employeeType === 'string' && ['trainer', 'admin'].includes(employeeType) 
+        ? employeeType 
+        : 'admin';
+
+      // Remove any duplicate employee_type and use the validated value
+      delete allFormData.employee_type;
+      allFormData.employee_type = validEmployeeType;
+
       // Debug: Log form values
-      console.log('🔍 Form values:', values);
+      console.log('🔍 Final form data:', allFormData);
       console.log('🔍 Employee type:', employeeType);
+      console.log('🔍 Employee type type:', typeof employeeType);
+      console.log('🔍 Validated employee type:', validEmployeeType);
+      console.log('🔍 Employee type JSON:', JSON.stringify(employeeType));
       console.log('🔍 Document file:', documentFile);
 
       let requestData;
@@ -114,24 +154,28 @@ const EnhancedEmployeeRegistration: React.FC = () => {
 
       if (documentFile) {
         // Use FormData if document is uploaded
-        const formData = new FormData();
+        const formDataObj = new FormData();
 
-        // Add all form fields to FormData
-        Object.keys(values).forEach(key => {
-          if (key === 'dateOfJoining' && values[key]) {
-            formData.append(key, values[key].format('YYYY-MM-DD'));
-          } else if (values[key] !== undefined && values[key] !== null) {
-            formData.append(key, values[key]);
+                // Add all form fields to FormData (excluding employee_type to avoid duplication)
+        Object.keys(allFormData).forEach(key => {
+          if (key === 'employee_type') {
+            // Skip employee_type here, we'll add it separately
+            return;
+          }
+          if (key === 'dateOfJoining' && allFormData[key]) {
+            formDataObj.append(key, allFormData[key].format('YYYY-MM-DD'));
+          } else if (allFormData[key] !== undefined && allFormData[key] !== null) {
+            formDataObj.append(key, allFormData[key]);
           }
         });
 
-        // Add employee type
-        formData.append('employee_type', employeeType);
+        // Add employee type only once
+        formDataObj.append('employee_type', validEmployeeType);
 
         // Add document file
-        formData.append('document', documentFile);
+        formDataObj.append('document', documentFile);
 
-        requestData = formData;
+        requestData = formDataObj;
         config = {
           headers: {
             Authorization: `Bearer ${token}`
@@ -141,9 +185,9 @@ const EnhancedEmployeeRegistration: React.FC = () => {
       } else {
         // Use JSON if no document
         const employeeData = {
-          ...values,
-          employee_type: employeeType,
-          dateOfJoining: values.dateOfJoining?.format('YYYY-MM-DD')
+          ...allFormData,
+          employee_type: validEmployeeType,
+          dateOfJoining: allFormData.dateOfJoining?.format('YYYY-MM-DD')
         };
 
         requestData = employeeData;
@@ -158,10 +202,11 @@ const EnhancedEmployeeRegistration: React.FC = () => {
       const response = await axios.post(`${API_BASE_URL}/api/employees/enhanced/add`, requestData, config);
       
       if (response.data.success) {
-        messageApi.success(`${employeeType.charAt(0).toUpperCase() + employeeType.slice(1)} employee created successfully!`);
+        messageApi.success(`${validEmployeeType.charAt(0).toUpperCase() + validEmployeeType.slice(1)} employee created successfully!`);
         form.resetFields();
         setCurrentStep(0);
         setDocumentFile(null);
+        setFormData({});
       } else {
         messageApi.error(response.data.message || 'Failed to create employee');
       }
@@ -194,7 +239,9 @@ const EnhancedEmployeeRegistration: React.FC = () => {
   };
 
   const nextStep = () => {
-    form.validateFields().then(() => {
+    form.validateFields().then((values) => {
+      // Save current step data to formData state
+      setFormData(prev => ({ ...prev, ...values }));
       setCurrentStep(currentStep + 1);
     }).catch(() => {
       messageApi.error('Please fill in all required fields');
@@ -202,15 +249,25 @@ const EnhancedEmployeeRegistration: React.FC = () => {
   };
 
   const prevStep = () => {
+    // Save current step data before going back
+    const currentValues = form.getFieldsValue();
+    setFormData(prev => ({ ...prev, ...currentValues }));
     setCurrentStep(currentStep - 1);
   };
+
+  // Load saved data when step changes
+  useEffect(() => {
+    if (Object.keys(formData).length > 0) {
+      form.setFieldsValue(formData);
+    }
+  }, [currentStep, formData, form]);
 
   const renderPersonalInfoStep = () => (
     <Card title="Personal Information">
       <Row gutter={16}>
         <Col span={24}>
           <Form.Item
-            name="employee_type"
+            
             label="Employee Type"
             rules={[{ required: true, message: 'Please select employee type' }]}
           >
@@ -270,9 +327,16 @@ const EnhancedEmployeeRegistration: React.FC = () => {
         <Col span={8}>
           <Form.Item
             name="age"
-            label="Age"
+            label="Age (Auto-calculated)"
           >
-            <InputNumber min={18} max={70} placeholder="Age" style={{ width: '100%' }} />
+            <InputNumber 
+              min={18} 
+              max={70} 
+              placeholder="Auto-calculated from birth year" 
+              style={{ width: '100%' }} 
+              disabled={calculatedAge !== null}
+              value={calculatedAge}
+            />
           </Form.Item>
         </Col>
         <Col span={8}>
@@ -280,7 +344,13 @@ const EnhancedEmployeeRegistration: React.FC = () => {
             name="year_of_birth"
             label="Year of Birth"
           >
-            <InputNumber min={1950} max={2010} placeholder="Year of birth" style={{ width: '100%' }} />
+            <InputNumber 
+              min={1950} 
+              max={2010} 
+              placeholder="Year of birth" 
+              style={{ width: '100%' }} 
+              onChange={handleYearOfBirthChange}
+            />
           </Form.Item>
         </Col>
       </Row>
@@ -344,7 +414,7 @@ const EnhancedEmployeeRegistration: React.FC = () => {
             name="qualification_level"
             label="Qualification Level"
           >
-            <Input placeholder="e.g., Bachelor's, Master's, PhD" />
+            <Input placeholder="e.g.C, B, A, PhD" />
           </Form.Item>
         </Col>
         <Col span={12}>
@@ -352,7 +422,7 @@ const EnhancedEmployeeRegistration: React.FC = () => {
             name="qualification_subject"
             label="Qualification Subject"
           >
-            <Input placeholder="e.g., Computer Science, Engineering" />
+            <Input placeholder="e.g., Computer Science, Engineering, IT" />
           </Form.Item>
         </Col>
       </Row>
@@ -371,7 +441,13 @@ const EnhancedEmployeeRegistration: React.FC = () => {
             name="competence_level"
             label="Competence Level"
           >
-            <Input placeholder="Competence level" />
+            <Select placeholder="Select competence level" allowClear>
+              <Option value="Level I">Level I</Option>
+              <Option value="Level II">Level II</Option>
+              <Option value="Level III">Level III</Option>
+              <Option value="Level IV">Level IV</Option>
+              <Option value="Level V">Level V</Option>
+            </Select>
           </Form.Item>
         </Col>
         <Col span={8}>
@@ -427,9 +503,9 @@ const EnhancedEmployeeRegistration: React.FC = () => {
         <Col span={12}>
           <Form.Item
             name="department_id"
-            label="Department"
+            label="Ocopation"
           >
-            <Select placeholder="Select department" allowClear>
+            <Select placeholder="Select Ocopation" allowClear>
               {departments.map(dept => (
                 <Option key={dept.department_id} value={dept.department_id}>
                   {dept.name}

@@ -1,0 +1,1050 @@
+import React, { useState } from 'react';
+import { 
+  Card, 
+  Table, 
+  Button, 
+  Select, 
+  Space, 
+  message, 
+  Typography,
+  Row,
+  Col,
+  Statistic,
+  Tag,
+  Descriptions,
+  Drawer,
+  Divider,
+  Progress,
+  Tabs,
+  Tooltip,
+  Badge
+} from 'antd';
+import { 
+  FileTextOutlined, 
+  DownloadOutlined, 
+  TeamOutlined,
+  UserOutlined,
+  SettingOutlined,
+  EyeOutlined,
+  InfoCircleOutlined,
+  PhoneOutlined,
+  MailOutlined,
+  HomeOutlined,
+  BookOutlined,
+  CalendarOutlined,
+  PieChartOutlined,
+  BarChartOutlined,
+  ManOutlined,
+  WomanOutlined,
+  ApartmentOutlined,
+  TrophyOutlined,
+  ClockCircleOutlined
+} from '@ant-design/icons';
+import axios from 'axios';
+
+// API Base URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+
+const { Title, Text } = Typography;
+const { Option } = Select;
+
+interface College {
+  college_id: number;
+  college_name: string;
+  college_code: string;
+}
+
+interface EmployeeReportsProps {
+  colleges: College[];
+}
+
+interface Employee {
+  employee_id: number;
+  full_name: string;
+  fname?: string;
+  lname?: string;
+  employee_type: string;
+  sex: string;
+  age: number;
+  year_of_birth: number;
+  year_of_employment: number;
+  qualification_level: string;
+  qualification_subject: string;
+  year_of_upgrading?: number;
+  competence_level: string;
+  competence_occupation: string;
+  citizen_address?: string;
+  mobile: string;
+  email: string;
+  occupation_on_training?: string;
+  employed_work_process?: string;
+  position?: string;
+  dateOfJoining?: string;
+  status: string;
+  college_name?: string;
+  college_code?: string;
+  department_name?: string;
+  role_name?: string;
+  user_status?: string;
+}
+
+const EmployeeReports: React.FC<EmployeeReportsProps> = ({ colleges }) => {
+  const [loading, setLoading] = useState(false);
+  const [selectedCollege, setSelectedCollege] = useState<number | null>(null);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [statistics, setStatistics] = useState({
+    total: 0,
+    trainers: 0,
+    admins: 0,
+    active: 0
+  });
+  const [analyticsData, setAnalyticsData] = useState({
+    genderDistribution: { male: 0, female: 0, other: 0 },
+    departmentDistribution: {} as Record<string, number>,
+    ageGroups: { '20-30': 0, '31-40': 0, '41-50': 0, '51-60': 0, '60+': 0 },
+    qualificationLevels: {} as Record<string, number>,
+    employmentYears: {} as Record<string, number>,
+    competenceLevels: {} as Record<string, number>
+  });
+
+  const calculateAnalytics = (employeeData: Employee[]) => {
+    const analytics = {
+      genderDistribution: { male: 0, female: 0, other: 0 },
+      departmentDistribution: {} as Record<string, number>,
+      ageGroups: { '20-30': 0, '31-40': 0, '41-50': 0, '51-60': 0, '60+': 0 },
+      qualificationLevels: {} as Record<string, number>,
+      employmentYears: {} as Record<string, number>,
+      competenceLevels: {} as Record<string, number>
+    };
+
+    employeeData.forEach((emp: Employee) => {
+      // Gender distribution
+      if (emp.sex === 'M') analytics.genderDistribution.male += 1;
+      else if (emp.sex === 'F') analytics.genderDistribution.female += 1;
+      else analytics.genderDistribution.other += 1;
+
+      // Department distribution
+      const dept = emp.department_name || 'Unassigned';
+      analytics.departmentDistribution[dept] = (analytics.departmentDistribution[dept] || 0) + 1;
+
+      // Age groups
+      const age = emp.age;
+      if (age >= 20 && age <= 30) analytics.ageGroups['20-30'] += 1;
+      else if (age >= 31 && age <= 40) analytics.ageGroups['31-40'] += 1;
+      else if (age >= 41 && age <= 50) analytics.ageGroups['41-50'] += 1;
+      else if (age >= 51 && age <= 60) analytics.ageGroups['51-60'] += 1;
+      else if (age > 60) analytics.ageGroups['60+'] += 1;
+
+      // Qualification levels
+      const qualLevel = emp.qualification_level || 'Not Specified';
+      analytics.qualificationLevels[qualLevel] = (analytics.qualificationLevels[qualLevel] || 0) + 1;
+
+      // Employment years (group by decade)
+      const empYear = emp.year_of_employment;
+      if (empYear) {
+        const decade = `${Math.floor(empYear / 10) * 10}s`;
+        analytics.employmentYears[decade] = (analytics.employmentYears[decade] || 0) + 1;
+      }
+
+      // Competence levels
+      const compLevel = emp.competence_level || 'Not Specified';
+      analytics.competenceLevels[compLevel] = (analytics.competenceLevels[compLevel] || 0) + 1;
+    });
+
+    return analytics;
+  };
+
+  const fetchEmployees = async (collegeId: number) => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const config = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+
+      const response = await axios.get(`${API_BASE_URL}/api/education-office/employees/${collegeId}`, config);
+      if (response.data.success) {
+        setEmployees(response.data.employees);
+        
+        // Calculate statistics
+        const stats = response.data.employees.reduce((acc: any, emp: Employee) => {
+          acc.total += 1;
+          if (emp.employee_type === 'trainer') acc.trainers += 1;
+          if (emp.employee_type === 'admin') acc.admins += 1;
+          if (emp.status === 'Active' || emp.status === 'active') acc.active += 1;
+          return acc;
+        }, { total: 0, trainers: 0, admins: 0, active: 0 });
+        
+        setStatistics(stats);
+
+        // Calculate analytics
+        const analytics = calculateAnalytics(response.data.employees);
+        setAnalyticsData(analytics);
+      }
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      message.error('Failed to load employees');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCollegeChange = (collegeId: number) => {
+    setSelectedCollege(collegeId);
+    fetchEmployees(collegeId);
+  };
+
+  const handleViewDetails = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setDrawerVisible(true);
+  };
+
+  const handleDownloadReport = async (reportType: string = 'comprehensive') => {
+    if (!selectedCollege) {
+      message.warning('Please select a college first');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const config = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+
+      const response = await axios.post(`${API_BASE_URL}/api/education-office/reports/generate`, {
+        college_id: selectedCollege,
+        report_type: reportType,
+        include_inactive: false
+      }, config);
+
+      if (response.data.success) {
+        // Convert data to CSV
+        const headers = Object.keys(response.data.data[0] || {});
+        const csvContent = [
+          headers.join(','),
+          ...response.data.data.map((row: any) => 
+            headers.map(header => `"${row[header] || ''}"`).join(',')
+          )
+        ].join('\n');
+
+        // Download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${reportType}_report_${Date.now()}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        message.success('Report downloaded successfully!');
+      }
+    } catch (error: any) {
+      console.error('Error downloading report:', error);
+      message.error(error.response?.data?.message || 'Failed to download report');
+    }
+  };
+
+  const renderEmployeeDetails = () => {
+    if (!selectedEmployee) return null;
+
+    return (
+      <div>
+        <Descriptions title="Personal Information" bordered column={2} size="small">
+          <Descriptions.Item label="Full Name" span={2}>
+            <strong>{selectedEmployee.full_name}</strong>
+          </Descriptions.Item>
+          <Descriptions.Item label="First Name">
+            {selectedEmployee.fname || 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Last Name">
+            {selectedEmployee.lname || 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Employee Type">
+            <Tag color={selectedEmployee.employee_type === 'trainer' ? 'blue' : 'green'}>
+              {selectedEmployee.employee_type?.toUpperCase()}
+            </Tag>
+          </Descriptions.Item>
+          <Descriptions.Item label="Sex">
+            {selectedEmployee.sex === 'M' ? 'Male' : selectedEmployee.sex === 'F' ? 'Female' : selectedEmployee.sex}
+          </Descriptions.Item>
+          <Descriptions.Item label="Age">
+            {selectedEmployee.age} years
+          </Descriptions.Item>
+          <Descriptions.Item label="Year of Birth">
+            {selectedEmployee.year_of_birth}
+          </Descriptions.Item>
+          <Descriptions.Item label="Position">
+            {selectedEmployee.position || 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Date of Joining">
+            {selectedEmployee.dateOfJoining ? new Date(selectedEmployee.dateOfJoining).toLocaleDateString() : 'N/A'}
+          </Descriptions.Item>
+        </Descriptions>
+
+        <Divider />
+
+        <Descriptions title="Contact Information" bordered column={2} size="small">
+          <Descriptions.Item label={<><PhoneOutlined /> Mobile</>}>
+            {selectedEmployee.mobile || 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label={<><MailOutlined /> Email</>}>
+            {selectedEmployee.email || 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label={<><HomeOutlined /> Address</> } span={2}>
+            {selectedEmployee.citizen_address || 'N/A'}
+          </Descriptions.Item>
+        </Descriptions>
+
+        <Divider />
+
+        <Descriptions title="Employment Information" bordered column={2} size="small">
+          <Descriptions.Item label="Year of Employment">
+            {selectedEmployee.year_of_employment || 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Status">
+            <Tag color={selectedEmployee.status === 'Active' ? 'green' : 'red'}>
+              {selectedEmployee.status?.toUpperCase()}
+            </Tag>
+          </Descriptions.Item>
+          <Descriptions.Item label="College">
+            {selectedEmployee.college_name || 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label="College Code">
+            {selectedEmployee.college_code || 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Department">
+            {selectedEmployee.department_name || 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Role">
+            {selectedEmployee.role_name || 'N/A'}
+          </Descriptions.Item>
+        </Descriptions>
+
+        <Divider />
+
+        <Descriptions title="Qualification & Competence" bordered column={2} size="small">
+          <Descriptions.Item label="Qualification Level">
+            {selectedEmployee.qualification_level || 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Qualification Subject">
+            {selectedEmployee.qualification_subject || 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Year of Upgrading">
+            {selectedEmployee.year_of_upgrading || 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Competence Level">
+            {selectedEmployee.competence_level || 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Competence Occupation" span={2}>
+            {selectedEmployee.competence_occupation || 'N/A'}
+          </Descriptions.Item>
+        </Descriptions>
+
+        <Divider />
+
+        <Descriptions title="Specific Role Information" bordered column={1} size="small">
+          {selectedEmployee.employee_type === 'trainer' ? (
+            <Descriptions.Item label="Occupation on Training">
+              {selectedEmployee.occupation_on_training || 'N/A'}
+            </Descriptions.Item>
+          ) : (
+            <Descriptions.Item label="Employed Work Process">
+              {selectedEmployee.employed_work_process || 'N/A'}
+            </Descriptions.Item>
+          )}
+        </Descriptions>
+
+        {selectedEmployee.user_status && (
+          <>
+            <Divider />
+            <Descriptions title="System Information" bordered column={1} size="small">
+              <Descriptions.Item label="User Account Status">
+                <Tag color={selectedEmployee.user_status === '1' ? 'green' : 'red'}>
+                  {selectedEmployee.user_status === '1' ? 'ACTIVE' : 'INACTIVE'}
+                </Tag>
+              </Descriptions.Item>
+            </Descriptions>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const columns = [
+    {
+      title: 'Name',
+      dataIndex: 'full_name',
+      key: 'full_name',
+      fixed: 'left' as const,
+      width: 200,
+      render: (text: string, record: Employee) => (
+        <div>
+          <div><strong>{text}</strong></div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            ID: {record.employee_id}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Type',
+      dataIndex: 'employee_type',
+      key: 'employee_type',
+      width: 100,
+      render: (type: string) => (
+        <Tag color={type === 'trainer' ? 'blue' : 'green'}>
+          {type?.toUpperCase()}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Personal Info',
+      key: 'personal_info',
+      width: 120,
+      render: (record: Employee) => (
+        <div>
+          <div>{record.sex === 'M' ? 'Male' : record.sex === 'F' ? 'Female' : record.sex}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            Age: {record.age}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Employment',
+      key: 'employment',
+      width: 150,
+      render: (record: Employee) => (
+        <div>
+          <div><CalendarOutlined /> {record.year_of_employment || 'N/A'}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            {record.position || 'No position'}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Qualification',
+      key: 'qualification',
+      width: 200,
+      render: (record: Employee) => (
+        <div>
+          <div><BookOutlined /> <strong>{record.qualification_level || 'N/A'}</strong></div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            {record.qualification_subject || 'No subject specified'}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Competence',
+      key: 'competence',
+      width: 180,
+      render: (record: Employee) => (
+        <div>
+          <div><strong>{record.competence_level || 'N/A'}</strong></div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            {record.competence_occupation || 'No occupation specified'}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Specific Role',
+      key: 'specific_role',
+      width: 200,
+      render: (record: Employee) => (
+        <div style={{ fontSize: '12px' }}>
+          {record.employee_type === 'trainer' 
+            ? record.occupation_on_training || 'No training occupation specified'
+            : record.employed_work_process || 'No work process specified'
+          }
+        </div>
+      ),
+    },
+    {
+      title: 'Contact',
+      key: 'contact',
+      width: 200,
+      render: (record: Employee) => (
+        <div>
+          <div><PhoneOutlined /> {record.mobile || 'N/A'}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            <MailOutlined /> {record.email || 'N/A'}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      width: 100,
+      render: (status: string) => (
+        <Tag color={status === 'Active' ? 'green' : 'red'}>
+          {status?.toUpperCase()}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      width: 100,
+      fixed: 'right' as const,
+      render: (record: Employee) => (
+        <Button
+          type="primary"
+          size="small"
+          icon={<EyeOutlined />}
+          onClick={() => handleViewDetails(record)}
+        >
+          View
+        </Button>
+      ),
+    },
+  ];
+
+  return (
+    <div>
+      <Title level={3}>Employee Reports</Title>
+      <Text type="secondary">
+        View and download comprehensive employee information by college
+      </Text>
+
+      <Card style={{ marginTop: '16px', marginBottom: '16px' }}<Row gutter={16} align="middle">
+          <Col span={8}>
+            <Select
+              placeholder="Select a college"
+              style={{ width: '100%' }}
+              onChange={handleCollegeChange}
+              size="large"
+            >
+              {colleges.map(college => (
+                <Option key={college.college_id} value={college.college_id}>
+                  {college.college_name} ({college.college_code})
+                </Option>
+              ))}
+            </Select>
+          </Col>
+          <Col span={16}>
+            <Space wrap>
+              <Button 
+                type="primary" 
+                icon={<DownloadOutlined />}
+                onClick={() => handleDownloadReport('comprehensive')}
+                disabled={!selectedCollege}
+              >
+                Comprehensive Report
+              </Button>
+              <Button 
+                icon={<DownloadOutlined />}
+                onClick={() => handleDownloadReport('trainer_details')}
+                disabled={!selectedCollege}
+              >
+                Trainer Report
+              </Button>
+              <Button 
+                icon={<DownloadOutlined />}
+                onClick={() => handleDownloadReport('admin_details')}
+                disabled={!selectedCollege}
+              >
+                Admin Report
+              </Button>
+              <Button 
+                icon={<PieChartOutlined />}
+                onClick={() => handleDownloadReport('gender_analytics')}
+                disabled={!selectedCollege}
+              >
+                Gender Analytics
+              </Button>
+              <Button 
+                icon={<ApartmentOutlined />}
+                onClick={() => handleDownloadReport('department_analytics')}
+                disabled={!selectedCollege}
+              >
+                Department Report
+              </Button>
+              <Button 
+                icon={<TrophyOutlined />}
+                onClick={() => handleDownloadReport('qualification_analytics')}
+                disabled={!selectedCollege}
+              >
+                Qualification Report
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+      </Card>
+
+      {selectedCollege && (
+        <>
+          {/* Statistics */}
+          <Row gutter={16} style={{ marginBottom: '16px' }}>
+            <Col span={6}>
+              <Card>
+                <Statistic
+                  title="Total Employees"
+                  value={statistics.total}
+                  prefix={<TeamOutlined />}
+                  valueStyle={{ color: '#1890ff' }}
+                />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card>
+                <Statistic
+                  title="Trainers"
+                  value={statistics.trainers}
+                  prefix={<UserOutlined />}
+                  valueStyle={{ color: '#722ed1' }}
+                />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card>
+                <Statistic
+                  title="Admin Staff"
+                  value={statistics.admins}
+                  prefix={<SettingOutlined />}
+                  valueStyle={{ color: '#fa8c16' }}
+                />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card>
+                <Statistic
+                  title="Active"
+                  value={statistics.active}
+                  prefix={<TeamOutlined />}
+                  valueStyle={{ color: '#52c41a' }}
+                />
+              </Card>
+            </Col>
+          </Row>
+
+          {/* Enhanced Reports with Tabs */}
+          <Tabs defaultActiveKey="overview" type="card">
+            {/* Overview Tab */}
+            <Tabs.TabPane 
+              tab={
+                <span>
+                  <BarChartOutlined />
+                  Overview
+                </span>
+              } 
+              key="overview"
+            >
+              <Card
+                title={
+                  <Space>
+                    <FileTextOutlined />
+                    Employee Details ({employees.length} employees)
+                  </Space>
+                }
+              >
+                <Table
+                  dataSource={employees}
+                  columns={columns}
+                  rowKey="employee_id"
+                  loading={loading}
+                  scroll={{ x: 1800 }}
+                  pagination={{ 
+                    pageSize: 10,
+                    showSizeChanger: true,
+                    showQuickJumper: true,
+                    showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} employees`
+                  }}
+                  size="small"
+                />
+              </Card>
+            </Tabs.TabPane>
+
+            {/* Gender Analytics Tab */}
+            <Tabs.TabPane 
+              tab={
+                <span>
+                  <PieChartOutlined />
+                  Gender Analytics
+                </span>
+              } 
+              key="gender"
+            >
+              <Row gutter={16}>
+                <Col span={8}>
+                  <Card title="Gender Distribution" style={{ marginBottom: 16 }}>
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+                        <ManOutlined style={{ color: '#1890ff', marginRight: 8 }} />
+                        <span>Male: </span>
+                        <Badge count={analyticsData.genderDistribution.male} style={{ marginLeft: 8 }} />
+                      </div>
+                      <Progress 
+                        percent={Math.round((analyticsData.genderDistribution.male / statistics.total) * 100)} 
+                        strokeColor="#1890ff"
+                        size="small"
+                      />
+                    </div>
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+                        <WomanOutlined style={{ color: '#ff69b4', marginRight: 8 }} />
+                        <span>Female: </span>
+                        <Badge count={analyticsData.genderDistribution.female} style={{ marginLeft: 8 }} />
+                      </div>
+                      <Progress 
+                        percent={Math.round((analyticsData.genderDistribution.female / statistics.total) * 100)} 
+                        strokeColor="#ff69b4"
+                        size="small"
+                      />
+                    </div>
+                    {analyticsData.genderDistribution.other > 0 && (
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+                          <UserOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+                          <span>Other: </span>
+                          <Badge count={analyticsData.genderDistribution.other} style={{ marginLeft: 8 }} />
+                        </div>
+                        <Progress 
+                          percent={Math.round((analyticsData.genderDistribution.other / statistics.total) * 100)} 
+                          strokeColor="#52c41a"
+                          size="small"
+                        />
+                      </div>
+                    )}
+                  </Card>
+                </Col>
+                <Col span={16}>
+                  <Card title="Gender by Employee Type">
+                    <Table
+                      dataSource={[
+                        {
+                          key: 'trainers',
+                          type: 'Trainers',
+                          male: employees.filter(emp => emp.employee_type === 'trainer' && emp.sex === 'M').length,
+                          female: employees.filter(emp => emp.employee_type === 'trainer' && emp.sex === 'F').length,
+                          total: employees.filter(emp => emp.employee_type === 'trainer').length
+                        },
+                        {
+                          key: 'admins',
+                          type: 'Admin Staff',
+                          male: employees.filter(emp => emp.employee_type === 'admin' && emp.sex === 'M').length,
+                          female: employees.filter(emp => emp.employee_type === 'admin' && emp.sex === 'F').length,
+                          total: employees.filter(emp => emp.employee_type === 'admin').length
+                        }
+                      ]}
+                      columns={[
+                        { title: 'Employee Type', dataIndex: 'type', key: 'type' },
+                        { 
+                          title: 'Male', 
+                          dataIndex: 'male', 
+                          key: 'male',
+                          render: (value: number, record: any) => (
+                            <div>
+                              <Badge count={value} />
+                              <span style={{ marginLeft: 8, fontSize: '12px', color: '#666' }}>
+                                ({record.total > 0 ? Math.round((value / record.total) * 100) : 0}%)
+                              </span>
+                            </div>
+                          )
+                        },
+                        { 
+                          title: 'Female', 
+                          dataIndex: 'female', 
+                          key: 'female',
+                          render: (value: number, record: any) => (
+                            <div>
+                              <Badge count={value} />
+                              <span style={{ marginLeft: 8, fontSize: '12px', color: '#666' }}>
+                                ({record.total > 0 ? Math.round((value / record.total) * 100) : 0}%)
+                              </span>
+                            </div>
+                          )
+                        },
+                        { title: 'Total', dataIndex: 'total', key: 'total' }
+                      ]}
+                      pagination={false}
+                      size="small"
+                    />
+                  </Card>
+                </Col>
+              </Row>
+            </Tabs.TabPane>
+
+            {/* Department Analytics Tab */}
+            <Tabs.TabPane 
+              tab={
+                <span>
+                  <ApartmentOutlined />
+                  Department Analytics
+                </span>
+              } 
+              key="department"
+            >
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Card title="Employees by Department">
+                    {Object.entries(analyticsData.departmentDistribution).map(([dept, count]) => (
+                      <div key={dept} style={{ marginBottom: 16 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span>{dept}</span>
+                          <Badge count={count} />
+                        </div>
+                        <Progress 
+                          percent={Math.round((count / statistics.total) * 100)} 
+                          size="small"
+                          strokeColor={dept === 'Unassigned' ? '#ff4d4f' : '#1890ff'}
+                        />
+                      </div>
+                    ))}
+                  </Card>
+                </Col>
+                <Col span={12}>
+                  <Card title="Department Details">
+                    <Table
+                      dataSource={Object.entries(analyticsData.departmentDistribution).map(([dept, count]) => ({
+                        key: dept,
+                        department: dept,
+                        count,
+                        percentage: Math.round((count / statistics.total) * 100),
+                        trainers: employees.filter(emp => (emp.department_name || 'Unassigned') === dept && emp.employee_type === 'trainer').length,
+                        admins: employees.filter(emp => (emp.department_name || 'Unassigned') === dept && emp.employee_type === 'admin').length
+                      }))}
+                      columns={[
+                        { title: 'Department', dataIndex: 'department', key: 'department' },
+                        { title: 'Total', dataIndex: 'count', key: 'count' },
+                        { 
+                          title: 'Percentage', 
+                          dataIndex: 'percentage', 
+                          key: 'percentage',
+                          render: (value: number) => `${value}%`
+                        },
+                        { title: 'Trainers', dataIndex: 'trainers', key: 'trainers' },
+                        { title: 'Admins', dataIndex: 'admins', key: 'admins' }
+                      ]}
+                      pagination={false}
+                      size="small"
+                    />
+                  </Card>
+                </Col>
+              </Row>
+            </Tabs.TabPane>
+
+            {/* Age Analytics Tab */}
+            <Tabs.TabPane 
+              tab={
+                <span>
+                  <ClockCircleOutlined />
+                  Age Analytics
+                </span>
+              } 
+              key="age"
+            >
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Card title="Age Group Distribution">
+                    {Object.entries(analyticsData.ageGroups).map(([ageGroup, count]) => (
+                      <div key={ageGroup} style={{ marginBottom: 16 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span>Age {ageGroup}</span>
+                          <Badge count={count} />
+                        </div>
+                        <Progress 
+                          percent={Math.round((count / statistics.total) * 100)} 
+                          size="small"
+                        />
+                      </div>
+                    ))}
+                  </Card>
+                </Col>
+                <Col span={12}>
+                  <Card title="Age Statistics">
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Statistic
+                          title="Average Age"
+                          value={Math.round(employees.reduce((sum, emp) => sum + emp.age, 0) / employees.length)}
+                          suffix="years"
+                          valueStyle={{ color: '#1890ff' }}
+                        />
+                      </Col>
+                      <Col span={12}>
+                        <Statistic
+                          title="Age Range"
+                          value={`${Math.min(...employees.map(emp => emp.age))} - ${Math.max(...employees.map(emp => emp.age))}`}
+                          valueStyle={{ color: '#52c41a' }}
+                        />
+                      </Col>
+                    </Row>
+                    <Divider />
+                    <Table
+                      dataSource={Object.entries(analyticsData.ageGroups).map(([ageGroup, count]) => ({
+                        key: ageGroup,
+                        ageGroup,
+                        count,
+                        percentage: Math.round((count / statistics.total) * 100)
+                      }))}
+                      columns={[
+                        { title: 'Age Group', dataIndex: 'ageGroup', key: 'ageGroup' },
+                        { title: 'Count', dataIndex: 'count', key: 'count' },
+                        { 
+                          title: 'Percentage', 
+                          dataIndex: 'percentage', 
+                          key: 'percentage',
+                          render: (value: number) => `${value}%`
+                        }
+                      ]}
+                      pagination={false}
+                      size="small"
+                    />
+                  </Card>
+                </Col>
+              </Row>
+            </Tabs.TabPane>
+
+            {/* Qualification Analytics Tab */}
+            <Tabs.TabPane 
+              tab={
+                <span>
+                  <TrophyOutlined />
+                  Qualification Analytics
+                </span>
+              } 
+              key="qualification"
+            >
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Card title="Qualification Levels">
+                    {Object.entries(analyticsData.qualificationLevels).map(([level, count]) => (
+                      <div key={level} style={{ marginBottom: 16 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span>{level}</span>
+                          <Badge count={count} />
+                        </div>
+                        <Progress 
+                          percent={Math.round((count / statistics.total) * 100)} 
+                          size="small"
+                          strokeColor={level === 'Not Specified' ? '#ff4d4f' : '#52c41a'}
+                        />
+                      </div>
+                    ))}
+                  </Card>
+                </Col>
+                <Col span={12}>
+                  <Card title="Competence Levels">
+                    {Object.entries(analyticsData.competenceLevels).map(([level, count]) => (
+                      <div key={level} style={{ marginBottom: 16 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span>{level}</span>
+                          <Badge count={count} />
+                        </div>
+                        <Progress 
+                          percent={Math.round((count / statistics.total) * 100)} 
+                          size="small"
+                          strokeColor={level === 'Not Specified' ? '#ff4d4f' : '#722ed1'}
+                        />
+                      </div>
+                    ))}
+                  </Card>
+                </Col>
+              </Row>
+            </Tabs.TabPane>
+
+            {/* Employment Analytics Tab */}
+            <Tabs.TabPane 
+              tab={
+                <span>
+                  <CalendarOutlined />
+                  Employment Analytics
+                </span>
+              } 
+              key="employment"
+            >
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Card title="Employment by Decade">
+                    {Object.entries(analyticsData.employmentYears).map(([decade, count]) => (
+                      <div key={decade} style={{ marginBottom: 16 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span>{decade}</span>
+                          <Badge count={count} />
+                        </div>
+                        <Progress 
+                          percent={Math.round((count / statistics.total) * 100)} 
+                          size="small"
+                        />
+                      </div>
+                    ))}
+                  </Card>
+                </Col>
+                <Col span={12}>
+                  <Card title="Employment Statistics">
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Statistic
+                          title="Earliest Employment"
+                          value={Math.min(...employees.filter(emp => emp.year_of_employment).map(emp => emp.year_of_employment))}
+                          valueStyle={{ color: '#1890ff' }}
+                        />
+                      </Col>
+                      <Col span={12}>
+                        <Statistic
+                          title="Latest Employment"
+                          value={Math.max(...employees.filter(emp => emp.year_of_employment).map(emp => emp.year_of_employment))}
+                          valueStyle={{ color: '#52c41a' }}
+                        />
+                      </Col>
+                    </Row>
+                    <Divider />
+                    <div>
+                      <Text strong>Experience Distribution:</Text>
+                      <div style={{ marginTop: 8 }}>
+                        {[
+                          { label: '0-5 years', count: employees.filter(emp => emp.year_of_employment && (new Date().getFullYear() - emp.year_of_employment) <= 5).length },
+                          { label: '6-10 years', count: employees.filter(emp => emp.year_of_employment && (new Date().getFullYear() - emp.year_of_employment) > 5 && (new Date().getFullYear() - emp.year_of_employment) <= 10).length },
+                          { label: '11-20 years', count: employees.filter(emp => emp.year_of_employment && (new Date().getFullYear() - emp.year_of_employment) > 10 && (new Date().getFullYear() - emp.year_of_employment) <= 20).length },
+                          { label: '20+ years', count: employees.filter(emp => emp.year_of_employment && (new Date().getFullYear() - emp.year_of_employment) > 20).length }
+                        ].map(item => (
+                          <div key={item.label} style={{ marginBottom: 8 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                              <span>{item.label}</span>
+                              <Badge count={item.count} />
+                            </div>
+                            <Progress 
+                              percent={Math.round((item.count / statistics.total) * 100)} 
+                              size="small"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+                </Col>
+              </Row>
+            </Tabs.TabPane>
+          </Tabs>
+        </>
+      )}
+
+      {/* Employee Details Drawer */}
+      <Drawer
+        title={
+          <Space>
+            <InfoCircleOutlined />
+            Employee Details: {selectedEmployee?.full_name}
+          </Space>
+        }
+        width={800}
+        onClose={() => setDrawerVisible(false)}
+        open={drawerVisible}
+        bodyStyle={{ paddingBottom: 80 }}
+      >
+        {renderEmployeeDetails()}
+      </Drawer>
+    </div>
+  );
+};
+
+export default EmployeeReports;

@@ -457,7 +457,7 @@ const getEmployeesByCollege = async (req, res) => {
         let query = `
             SELECT
                 e.employee_id,
-                e.full_name,
+                e.name as full_name,
                 e.employee_type,
                 e.sex,
                 e.age,
@@ -480,13 +480,12 @@ const getEmployeesByCollege = async (req, res) => {
                 c.college_code,
                 d.name as department_name,
                 r.role_name,
-                u.status as user_status,
-                u.last_login
+                u.status as user_status
             FROM employees e
             LEFT JOIN colleges c ON e.college_id = c.college_id
             LEFT JOIN departments d ON e.department_id = d.department_id
             LEFT JOIN roles r ON e.role_id = r.role_id
-            LEFT JOIN users u ON e.user_id = u.user_id
+            LEFT JOIN users u ON e.employee_id = u.employee_id
             WHERE e.college_id = ?
         `;
 
@@ -503,7 +502,7 @@ const getEmployeesByCollege = async (req, res) => {
             queryParams.push(status);
         }
 
-        query += ' ORDER BY e.full_name';
+        query += ' ORDER BY e.name';
 
         const [employees] = await db.pool.query(query, queryParams);
 
@@ -572,7 +571,7 @@ const generateEmployeeReport = async (req, res) => {
             case 'trainer_details':
                 query = `
                     SELECT
-                        full_name as "Trainer Full Name",
+                        name as "Trainer Full Name",
                         sex as "Sex",
                         age as "Age",
                         year_of_birth as "Year of Birth",
@@ -597,7 +596,7 @@ const generateEmployeeReport = async (req, res) => {
             case 'admin_details':
                 query = `
                     SELECT
-                        full_name as "Employee Full Name",
+                        name as "Employee Full Name",
                         sex as "Sex",
                         age as "Age",
                         year_of_birth as "Year of Birth",
@@ -622,7 +621,7 @@ const generateEmployeeReport = async (req, res) => {
                 query = `
                     SELECT
                         employee_type as "Employee Type",
-                        full_name as "Full Name",
+                        name as "Full Name",
                         sex as "Sex",
                         age as "Age",
                         year_of_birth as "Year of Birth",
@@ -649,7 +648,7 @@ const generateEmployeeReport = async (req, res) => {
                 }
         }
 
-        query += ' ORDER BY employee_type, full_name';
+        query += ' ORDER BY employee_type, name';
 
         // Execute query to get report data
         const [reportData] = await connection.query(query, queryParams);
@@ -772,6 +771,621 @@ const getCollegeStatistics = async (req, res) => {
     }
 };
 
+// =====================================================
+// TECHNOLOGY TRANSFER MODULE FUNCTIONS
+// =====================================================
+
+/**
+ * Get all technology transfers with optional college filtering
+ */
+const getAllTechnologyTransfers = async (req, res) => {
+    try {
+        const { college_id } = req.query;
+        
+        let query = `
+            SELECT 
+                tt.*,
+                c.college_name,
+                c.college_code,
+                c.location
+            FROM technology_transfers tt
+            LEFT JOIN colleges c ON tt.college_id = c.college_id
+        `;
+        
+        let queryParams = [];
+        
+        if (college_id) {
+            query += ' WHERE tt.college_id = ?';
+            queryParams.push(college_id);
+        }
+        
+        query += ' ORDER BY tt.created_at DESC';
+
+        const [technologies] = await db.pool.query(query, queryParams);
+
+        res.json({ 
+            success: true, 
+            technologies,
+            total: technologies.length,
+            filtered_by_college: college_id ? true : false,
+            college_id: college_id || null
+        });
+
+    } catch (error) {
+        console.error("Error fetching technology transfers:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Error fetching technology transfers",
+            error: error.message
+        });
+    }
+};
+
+/**
+ * Create a new technology transfer
+ */
+const createTechnologyTransfer = async (req, res) => {
+    const {
+        technology_name,
+        sector,
+        identified_value_chain,
+        technology_type,
+        year_of_transfer,
+        transferred_enterprise_name,
+        transferred_enterprise_phone,
+        enterprise_sector,
+        wealth,
+        college_id,
+        technology_developer_name,
+        technology_developer_phone
+    } = req.body;
+
+    // Input validation
+    if (!technology_name || !sector || !technology_type || !year_of_transfer || !college_id) {
+        return res.status(400).json({
+            success: false,
+            message: "Missing required fields: technology_name, sector, technology_type, year_of_transfer, college_id"
+        });
+    }
+
+    try {
+        // Validate that the college exists in the colleges table
+        const [collegeCheck] = await db.pool.query(
+            'SELECT college_id, college_name, status FROM colleges WHERE college_id = ?',
+            [college_id]
+        );
+
+        if (collegeCheck.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid college selection. The specified college does not exist in the database."
+            });
+        }
+
+        if (collegeCheck[0].status !== 'active') {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot create technology transfer for inactive college: ${collegeCheck[0].college_name}`
+            });
+        }
+
+        // Create the technology transfer record
+        const [result] = await db.pool.query(
+            `INSERT INTO technology_transfers 
+                (technology_name, sector, identified_value_chain, technology_type, year_of_transfer,
+                 transferred_enterprise_name, transferred_enterprise_phone, enterprise_sector, wealth,
+                 college_id, technology_developer_name, technology_developer_phone)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                technology_name, sector, identified_value_chain, technology_type, year_of_transfer,
+                transferred_enterprise_name, transferred_enterprise_phone, enterprise_sector, wealth,
+                college_id, technology_developer_name, technology_developer_phone
+            ]
+        );
+
+        res.status(201).json({ 
+            success: true, 
+            id: result.insertId,
+            college_name: collegeCheck[0].college_name,
+            message: `Technology transfer created successfully for ${collegeCheck[0].college_name}.` 
+        });
+
+    } catch (error) {
+        console.error("Error creating technology transfer:", error);
+        
+        // Handle foreign key constraint errors
+        if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid college selection. Please select a valid college from the database."
+            });
+        }
+
+        res.status(500).json({ 
+            success: false, 
+            message: "Error creating technology transfer",
+            error: error.message
+        });
+    }
+};
+
+/**
+ * Update technology transfer
+ */
+const updateTechnologyTransfer = async (req, res) => {
+    const { id } = req.params;
+    const {
+        technology_name,
+        sector,
+        identified_value_chain,
+        technology_type,
+        year_of_transfer,
+        transferred_enterprise_name,
+        transferred_enterprise_phone,
+        enterprise_sector,
+        wealth,
+        college_id,
+        technology_developer_name,
+        technology_developer_phone
+    } = req.body;
+
+    if (!id) {
+        return res.status(400).json({
+            success: false,
+            message: "Technology transfer ID is required."
+        });
+    }
+
+    try {
+        const [result] = await db.pool.query(
+            `UPDATE technology_transfers SET 
+                technology_name = COALESCE(?, technology_name),
+                sector = COALESCE(?, sector),
+                identified_value_chain = COALESCE(?, identified_value_chain),
+                technology_type = COALESCE(?, technology_type),
+                year_of_transfer = COALESCE(?, year_of_transfer),
+                transferred_enterprise_name = COALESCE(?, transferred_enterprise_name),
+                transferred_enterprise_phone = COALESCE(?, transferred_enterprise_phone),
+                enterprise_sector = COALESCE(?, enterprise_sector),
+                wealth = COALESCE(?, wealth),
+                college_id = COALESCE(?, college_id),
+                technology_developer_name = COALESCE(?, technology_developer_name),
+                technology_developer_phone = COALESCE(?, technology_developer_phone),
+                updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+            [
+                technology_name, sector, identified_value_chain, technology_type, year_of_transfer,
+                transferred_enterprise_name, transferred_enterprise_phone, enterprise_sector, wealth,
+                college_id, technology_developer_name, technology_developer_phone, id
+            ]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Technology transfer not found."
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            message: "Technology transfer updated successfully." 
+        });
+
+    } catch (error) {
+        console.error("Error updating technology transfer:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Error updating technology transfer",
+            error: error.message
+        });
+    }
+};
+
+/**
+ * Delete technology transfer
+ */
+const deleteTechnologyTransfer = async (req, res) => {
+    const { id } = req.params;
+
+    if (!id) {
+        return res.status(400).json({
+            success: false,
+            message: "Technology transfer ID is required."
+        });
+    }
+
+    try {
+        const [result] = await db.pool.query(
+            'DELETE FROM technology_transfers WHERE id = ?',
+            [id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Technology transfer not found."
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            message: "Technology transfer deleted successfully." 
+        });
+
+    } catch (error) {
+        console.error("Error deleting technology transfer:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Error deleting technology transfer",
+            error: error.message
+        });
+    }
+};
+
+/**
+ * Get technology transfer report with optional college filtering
+ */
+const getTechnologyTransferReport = async (req, res) => {
+    try {
+        const { college_id } = req.query;
+        
+        let query = `
+            SELECT 
+                tt.*,
+                c.college_name,
+                c.college_code,
+                c.location
+            FROM technology_transfers tt
+            LEFT JOIN colleges c ON tt.college_id = c.college_id
+        `;
+        
+        let queryParams = [];
+        
+        if (college_id) {
+            query += ' WHERE tt.college_id = ?';
+            queryParams.push(college_id);
+        }
+        
+        query += ' ORDER BY tt.year_of_transfer DESC, tt.technology_name';
+
+        const [technologies] = await db.pool.query(query, queryParams);
+
+        res.json({ 
+            success: true, 
+            technologies,
+            total: technologies.length,
+            filtered_by_college: college_id ? true : false,
+            college_id: college_id || null
+        });
+
+    } catch (error) {
+        console.error("Error generating technology transfer report:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Error generating report",
+            error: error.message
+        });
+    }
+};
+
+// =====================================================
+// ENTERPRISE DATA MODULE FUNCTIONS
+// =====================================================
+
+/**
+ * Get all enterprises with optional college filtering
+ */
+const getAllEnterprises = async (req, res) => {
+    try {
+        const { college_id } = req.query;
+        
+        let query = `
+            SELECT 
+                e.*,
+                c.college_name,
+                c.college_code,
+                c.location
+            FROM enterprise_data e
+            LEFT JOIN colleges c ON e.college_id = c.college_id
+        `;
+        
+        let queryParams = [];
+        
+        if (college_id) {
+            query += ' WHERE e.college_id = ?';
+            queryParams.push(college_id);
+        }
+        
+        query += ' ORDER BY e.created_at DESC';
+
+        const [enterprises] = await db.pool.query(query, queryParams);
+
+        res.json({ 
+            success: true, 
+            enterprises,
+            total: enterprises.length,
+            filtered_by_college: college_id ? true : false,
+            college_id: college_id || null
+        });
+
+    } catch (error) {
+        console.error("Error fetching enterprises:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Error fetching enterprises",
+            error: error.message
+        });
+    }
+};
+
+/**
+ * Create a new enterprise
+ */
+const createEnterprise = async (req, res) => {
+    const {
+        enterprise_name,
+        year_of_establishment,
+        zone,
+        woreda_city,
+        sub_city,
+        kebele,
+        sector,
+        sub_sector,
+        trade_licence_id,
+        maturity_level,
+        live_operators_male,
+        live_operators_female,
+        live_operators_total,
+        assessed_competent_operators_male,
+        assessed_competent_operators_female,
+        assessed_competent_operators_total,
+        phone_no,
+        college_id
+    } = req.body;
+
+    // Input validation
+    if (!enterprise_name || !year_of_establishment || !zone || !sector) {
+        return res.status(400).json({
+            success: false,
+            message: "Missing required fields: enterprise_name, year_of_establishment, zone, sector"
+        });
+    }
+
+    try {
+        // Validate college if provided
+        if (college_id) {
+            const [collegeCheck] = await db.pool.query(
+                'SELECT college_id, college_name, status FROM colleges WHERE college_id = ?',
+                [college_id]
+            );
+
+            if (collegeCheck.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid college selection. The specified college does not exist in the database."
+                });
+            }
+
+            if (collegeCheck[0].status !== 'active') {
+                return res.status(400).json({
+                    success: false,
+                    message: `Cannot create enterprise for inactive college: ${collegeCheck[0].college_name}`
+                });
+            }
+        }
+
+        const [result] = await db.pool.query(
+            `INSERT INTO enterprise_data 
+                (enterprise_name, year_of_establishment, zone, woreda_city, sub_city, kebele,
+                 sector, sub_sector, trade_licence_id, maturity_level, live_operators_male,
+                 live_operators_female, live_operators_total, assessed_competent_operators_male,
+                 assessed_competent_operators_female, assessed_competent_operators_total, phone_no, college_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                enterprise_name, year_of_establishment, zone, woreda_city, sub_city, kebele,
+                sector, sub_sector, trade_licence_id, maturity_level, live_operators_male,
+                live_operators_female, live_operators_total, assessed_competent_operators_male,
+                assessed_competent_operators_female, assessed_competent_operators_total, phone_no, college_id || null
+            ]
+        );
+
+        res.status(201).json({ 
+            success: true, 
+            id: result.insertId,
+            message: 'Enterprise created successfully.' 
+        });
+
+    } catch (error) {
+        console.error("Error creating enterprise:", error);
+        
+        // Handle foreign key constraint errors
+        if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid college selection. Please select a valid college from the database."
+            });
+        }
+
+        res.status(500).json({ 
+            success: false, 
+            message: "Error creating enterprise",
+            error: error.message
+        });
+    }
+};
+
+/**
+ * Update enterprise
+ */
+const updateEnterprise = async (req, res) => {
+    const { id } = req.params;
+    const {
+        enterprise_name,
+        year_of_establishment,
+        zone,
+        woreda_city,
+        sub_city,
+        kebele,
+        sector,
+        sub_sector,
+        trade_licence_id,
+        maturity_level,
+        live_operators_male,
+        live_operators_female,
+        live_operators_total,
+        assessed_competent_operators_male,
+        assessed_competent_operators_female,
+        assessed_competent_operators_total,
+        phone_no
+    } = req.body;
+
+    if (!id) {
+        return res.status(400).json({
+            success: false,
+            message: "Enterprise ID is required."
+        });
+    }
+
+    try {
+        const [result] = await db.pool.query(
+            `UPDATE enterprise_data SET 
+                enterprise_name = COALESCE(?, enterprise_name),
+                year_of_establishment = COALESCE(?, year_of_establishment),
+                zone = COALESCE(?, zone),
+                woreda_city = COALESCE(?, woreda_city),
+                sub_city = COALESCE(?, sub_city),
+                kebele = COALESCE(?, kebele),
+                sector = COALESCE(?, sector),
+                sub_sector = COALESCE(?, sub_sector),
+                trade_licence_id = COALESCE(?, trade_licence_id),
+                maturity_level = COALESCE(?, maturity_level),
+                live_operators_male = COALESCE(?, live_operators_male),
+                live_operators_female = COALESCE(?, live_operators_female),
+                live_operators_total = COALESCE(?, live_operators_total),
+                assessed_competent_operators_male = COALESCE(?, assessed_competent_operators_male),
+                assessed_competent_operators_female = COALESCE(?, assessed_competent_operators_female),
+                assessed_competent_operators_total = COALESCE(?, assessed_competent_operators_total),
+                phone_no = COALESCE(?, phone_no),
+                updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+            [
+                enterprise_name, year_of_establishment, zone, woreda_city, sub_city, kebele,
+                sector, sub_sector, trade_licence_id, maturity_level, live_operators_male,
+                live_operators_female, live_operators_total, assessed_competent_operators_male,
+                assessed_competent_operators_female, assessed_competent_operators_total, phone_no, id
+            ]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Enterprise not found."
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            message: "Enterprise updated successfully." 
+        });
+
+    } catch (error) {
+        console.error("Error updating enterprise:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Error updating enterprise",
+            error: error.message
+        });
+    }
+};
+
+/**
+ * Delete enterprise
+ */
+const deleteEnterprise = async (req, res) => {
+    const { id } = req.params;
+
+    if (!id) {
+        return res.status(400).json({
+            success: false,
+            message: "Enterprise ID is required."
+        });
+    }
+
+    try {
+        const [result] = await db.pool.query(
+            'DELETE FROM enterprise_data WHERE id = ?',
+            [id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Enterprise not found."
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            message: "Enterprise deleted successfully." 
+        });
+
+    } catch (error) {
+        console.error("Error deleting enterprise:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Error deleting enterprise",
+            error: error.message
+        });
+    }
+};
+
+/**
+ * Get enterprise data report with optional college filtering
+ */
+const getEnterpriseReport = async (req, res) => {
+    try {
+        const { college_id } = req.query;
+        
+        let query = `
+            SELECT 
+                e.*,
+                c.college_name,
+                c.college_code,
+                c.location
+            FROM enterprise_data e
+            LEFT JOIN colleges c ON e.college_id = c.college_id
+        `;
+        
+        let queryParams = [];
+        
+        if (college_id) {
+            query += ' WHERE e.college_id = ?';
+            queryParams.push(college_id);
+        }
+        
+        query += ' ORDER BY e.year_of_establishment DESC, e.enterprise_name';
+
+        const [enterprises] = await db.pool.query(query, queryParams);
+
+        res.json({ 
+            success: true, 
+            enterprises,
+            total: enterprises.length,
+            filtered_by_college: college_id ? true : false,
+            college_id: college_id || null
+        });
+
+    } catch (error) {
+        console.error("Error generating enterprise report:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Error generating report",
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     createAdminUser,
     createCollege,
@@ -780,5 +1394,17 @@ module.exports = {
     deleteCollege,
     getEmployeesByCollege,
     generateEmployeeReport,
-    getCollegeStatistics
+    getCollegeStatistics,
+    // Technology Transfer functions
+    getAllTechnologyTransfers,
+    createTechnologyTransfer,
+    updateTechnologyTransfer,
+    deleteTechnologyTransfer,
+    getTechnologyTransferReport,
+    // Enterprise Data functions
+    getAllEnterprises,
+    createEnterprise,
+    updateEnterprise,
+    deleteEnterprise,
+    getEnterpriseReport
 };

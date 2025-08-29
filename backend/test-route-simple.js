@@ -6,7 +6,7 @@ async function testRouteSimple() {
         console.log('🧪 Testing Enhanced Employee Route (No File)...\n');
 
         // Get a valid token
-        const loginResponse = await axios.post('http://localhost:5000/login', {
+        const loginResponse = await axios.post('http://localhost:5001/login', {
             user_name: 'hayal@itp.it',
             pass: 'itp@123'
         });
@@ -42,7 +42,7 @@ async function testRouteSimple() {
         };
 
         const response = await axios.post(
-            'http://localhost:5000/api/employees/enhanced/add',
+            'http://localhost:5001/api/employees/enhanced/add',
             employeeData,
             {
                 headers: {

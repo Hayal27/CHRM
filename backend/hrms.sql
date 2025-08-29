@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Aug 19, 2025 at 10:38 AM
+-- Host: localhost
+-- Generation Time: Aug 23, 2025 at 11:09 AM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- PHP Version: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -105,6 +105,52 @@ CREATE TABLE `attendance` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `colleges`
+--
+
+CREATE TABLE `colleges` (
+  `college_id` int(11) NOT NULL,
+  `college_name` varchar(255) NOT NULL,
+  `college_code` varchar(50) DEFAULT NULL,
+  `location` varchar(255) DEFAULT NULL,
+  `established_date` date DEFAULT NULL,
+  `college_type` enum('technical','vocational','university','institute') DEFAULT 'technical',
+  `contact_phone` varchar(50) DEFAULT NULL,
+  `contact_email` varchar(255) DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  `status` enum('active','inactive','suspended') DEFAULT 'active',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `colleges`
+--
+
+INSERT INTO `colleges` (`college_id`, `college_name`, `college_code`, `location`, `established_date`, `college_type`, `contact_phone`, `contact_email`, `address`, `status`, `created_at`, `updated_at`) VALUES
+(1, 'Technical College of Engineering', 'TCE001', 'Addis Ababa', NULL, 'technical', NULL, 'info@tce.edu.et', NULL, 'active', '2025-08-22 16:19:58', '2025-08-22 16:19:58'),
+(2, 'Vocational Training Institute', 'VTI002', 'Bahir Dar', NULL, 'vocational', NULL, 'contact@vti.edu.et', NULL, 'active', '2025-08-22 16:19:58', '2025-08-22 16:19:58'),
+(3, 'Institute of Technology', 'IOT003', 'Mekelle', NULL, 'institute', NULL, 'admin@iot.edu.et', NULL, 'active', '2025-08-22 16:19:58', '2025-08-22 16:19:58'),
+(4, 'test', 'DYE102', 'DAYE', NULL, 'vocational', '0999000090', 'a@gmail.com', 'Oxfordshire Oxfordshire', 'active', '2025-08-23 08:31:39', '2025-08-23 08:31:39');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `college_user_assignments`
+--
+
+CREATE TABLE `college_user_assignments` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `college_id` int(11) NOT NULL,
+  `assignment_type` enum('primary','secondary','read_only') DEFAULT 'primary',
+  `assigned_by` int(11) DEFAULT NULL,
+  `assigned_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `conversations`
 --
 
@@ -122,20 +168,40 @@ CREATE TABLE `conversations` (
 
 CREATE TABLE `departments` (
   `department_id` int(11) NOT NULL,
-  `name` varchar(100) NOT NULL
+  `name` varchar(100) NOT NULL,
+  `college_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `departments`
 --
 
-INSERT INTO `departments` (`department_id`, `name`) VALUES
-(1, 'ሃዋሳ አዲሱ መናሃሪያ'),
-(2, 'ሃዋሳ አሮጌ መናሃሪያ'),
-(3, 'ዳዬ መናሃሪያ'),
-(4, 'ወንዶ መናሃሪያ'),
-(5, 'ይርጋለም መናሃሪያ'),
-(6, 'ቦና መናሃሪያ');
+INSERT INTO `departments` (`department_id`, `name`, `college_id`) VALUES
+(1, 'ሃዋሳ አዲሱ መናሃሪያ', NULL),
+(2, 'ሃዋሳ አሮጌ መናሃሪያ', NULL),
+(3, 'ዳዬ መናሃሪያ', NULL),
+(4, 'ወንዶ መናሃሪያ', NULL),
+(5, 'ይርጋለም መናሃሪያ', NULL),
+(6, 'ቦና መናሃሪያ', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `education_office_reports`
+--
+
+CREATE TABLE `education_office_reports` (
+  `report_id` int(11) NOT NULL,
+  `college_id` int(11) NOT NULL,
+  `report_type` enum('employee_summary','trainer_details','admin_details','comprehensive') DEFAULT 'comprehensive',
+  `generated_by` int(11) NOT NULL,
+  `report_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`report_data`)),
+  `report_period_start` date DEFAULT NULL,
+  `report_period_end` date DEFAULT NULL,
+  `status` enum('generating','completed','failed') DEFAULT 'generating',
+  `file_path` varchar(500) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -173,62 +239,93 @@ CREATE TABLE `employees` (
   `position` varchar(100) DEFAULT NULL,
   `dateOfJoining` date DEFAULT NULL,
   `status` enum('Active','Inactive') DEFAULT 'Active',
-  `profileImage` text DEFAULT NULL
+  `profileImage` text DEFAULT NULL,
+  `college_id` int(11) DEFAULT NULL,
+  `employee_type` enum('trainer','admin') DEFAULT 'admin',
+  `age` int(11) DEFAULT NULL,
+  `year_of_birth` year(4) DEFAULT NULL,
+  `year_of_employment` year(4) DEFAULT NULL,
+  `qualification_level` varchar(255) DEFAULT NULL,
+  `qualification_subject` varchar(255) DEFAULT NULL,
+  `year_of_upgrading` year(4) DEFAULT NULL,
+  `competence_level` varchar(255) DEFAULT NULL,
+  `competence_occupation` varchar(255) DEFAULT NULL,
+  `citizen_address` text DEFAULT NULL,
+  `mobile` varchar(50) DEFAULT NULL,
+  `occupation_on_training` varchar(255) DEFAULT NULL,
+  `employed_work_process` varchar(255) DEFAULT NULL,
+  `specialization` varchar(255) DEFAULT NULL,
+  `years_of_experience` int(11) DEFAULT NULL,
+  `emergency_contact_name` varchar(255) DEFAULT NULL,
+  `emergency_contact_phone` varchar(50) DEFAULT NULL,
+  `emergency_contact_relationship` varchar(100) DEFAULT NULL,
+  `created_by` int(11) DEFAULT NULL,
+  `document_path` varchar(500) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `employees`
 --
 
-INSERT INTO `employees` (`employee_id`, `name`, `role_id`, `department_id`, `supervisor_id`, `fname`, `lname`, `email`, `phone`, `sex`, `position`, `dateOfJoining`, `status`, `profileImage`) VALUES
-(21, 'www www', 1, 1, NULL, 'hayal', 'tamrat', NULL, '0916048977', NULL, NULL, NULL, 'Active', NULL),
-(34, 'hayaltame', NULL, 2, 21, 'ggg', 'ggg', 'beki@gmail.com', '0934556621', 'F', NULL, NULL, 'Active', NULL),
-(36, 'hayaltame', NULL, 2, 0, 'some', 'one', 'bekeei@gmail.com', '0934556621', 'M', NULL, NULL, 'Active', NULL),
-(37, 'hayaltame111', 1, NULL, NULL, 'some11', 'tame', 'oneq@gmail.com', '0934556688', 'M', NULL, NULL, 'Active', NULL),
-(38, 'hayaltame3333', 1, NULL, NULL, 'aaa', 'a', 'one1a111@gmail.com', '0934556111', 'M', NULL, NULL, 'Active', NULL),
-(39, 'hayaltame1114444', 1, NULL, NULL, 'some00', 'one11', 'one222@gmail.com', '0934556688', 'M', NULL, NULL, 'Active', NULL),
-(40, 'hayaltame1114444444', 1, NULL, NULL, 'yeab444', 'one4444', 'beki444@gmail.com', '0934556444', 'M', NULL, NULL, 'Active', NULL),
-(41, 'hayaltame444', 1, NULL, NULL, 'yeabeee', 'eeee', 'eeeee@gmail.com', '0934556644', 'M', NULL, NULL, 'Active', NULL),
-(43, 'rtttttt44', 1, 1, NULL, 'yeabeee', 'eeee', 'eeee44e@gmail.com', '0934556677', 'M', NULL, NULL, 'Active', NULL),
-(45, 'tttttttttttt111', 1, NULL, NULL, 'yeabrrr', 'tamer', 'onerrr@gmail.com', '0934556655', 'M', NULL, NULL, 'Active', NULL),
-(46, 'bekele woya', 8, NULL, NULL, 'bekele', 'woya', 'woya@gmail.com', '0933499094', 'M', NULL, NULL, 'Active', NULL),
-(47, 'admin admin', 1, 2, 1, 'admin', 'admin', 'admin@email.com', '123-456-7890', 'M', NULL, NULL, 'Active', NULL),
-(48, 'hylt', 8, 1, 0, 'hl', 'tm', 'hl@gmail.com', '0934556644', 'M', NULL, NULL, 'Active', NULL),
-(49, 'yonas', 2, NULL, NULL, 'yonas', 'ceo', 'yonas@itp.org', '0933499093', 'M', NULL, NULL, 'Active', NULL),
-(50, 'simegn', 5, 2, 49, 'geter', 'geter', 'simegn@itp.org', '0933499094', 'M', NULL, NULL, 'Active', NULL),
-(51, 'hayal@itp.org', 8, 2, 50, 'hayal', 'hayal', 'hayal@itp.org', '0933499097', 'M', NULL, NULL, 'Active', NULL),
-(54, 'hayalt@itp.org', 8, 2, 0, 'hayalt', 'hayalt', 'hayalt@itp.org', '0933499097', 'M', NULL, NULL, 'Active', NULL),
-(55, 'abebe', 4, NULL, 0, 'abebe', 'abe', 'abe@itp.et', '0934556624', 'M', NULL, NULL, 'Active', NULL),
-(56, '333333333', 4, 2, 49, 'some00333333', 'one333333', 'beki33333333333@gmail.com', '0934556333', 'M', NULL, NULL, 'Active', NULL),
-(57, 'staf', 8, 2, 56, 'staf', 'staf', 'staf@gmail.com', '0934556688', 'M', NULL, NULL, 'Active', NULL),
-(58, 'nebyat', 6, 2, 50, 'nebyat', 'nebyat', 'nebyat@itp.et', '093455444', 'F', NULL, NULL, 'Active', NULL),
-(59, 'ewunetu', 7, 2, 58, 'ewunetu', 'ewunetu', 'ewunetu@itp.et', '0934556453', 'M', NULL, NULL, 'Active', NULL),
-(60, 'general', 3, NULL, 49, 'general', 'manager', 'manager@itp.et', '0933499366', 'M', NULL, NULL, 'Active', NULL),
-(62, 'staf1', 8, 2, 66, 'staf1', 'staf1', 'staf1@itp.et', '0934556688', 'M', NULL, NULL, 'Active', NULL),
-(63, 'hayalta4444', 6, 2, 50, 'some', 'one', 'berrrrrki@gmail.com', '0934556555', 'M', NULL, NULL, 'Active', NULL),
-(64, 'yeabeeeee', 1, NULL, NULL, 'some', 'one', 'eeee@gmail.com', '0934556688', 'M', NULL, NULL, 'Active', NULL),
-(65, 'team leader', 7, 2, 58, 'teaml', 'teaml', 'teaml@gmail.com', '09373773333', 'M', NULL, NULL, 'Active', NULL),
-(66, 'team leader', 7, 2, 58, 'teamleader', 'teamleader', 'teamleader@gmail.com', '09373773333', 'M', NULL, NULL, 'Active', NULL),
-(67, 'hayal', 1, NULL, NULL, 'hayal', 'tamrat', 'hayal@itp.it', '0916048977', 'M', NULL, NULL, 'Active', NULL),
-(68, 'hayal', 8, 2, 65, 'hayal', 'tamrat', 'hayalt@itp.it', '0916048977', 'M', NULL, NULL, 'Active', NULL),
-(69, 'registrar@gmail.com', 5, NULL, NULL, 'registrar', 'registrar', 'registrar@gmail.com', '0916048977', 'M', NULL, NULL, 'Active', NULL),
-(70, 'Nathan', 1, NULL, NULL, 'Hayal', 'Girum', 'nathan@itp.et', '0976180462', 'M', NULL, NULL, 'Active', NULL),
-(71, 'Hayal Tamrat Girum', 3, NULL, NULL, 'Hayal', 'Girum', 'hayal@gmai.com', '0976180462', 'M', NULL, NULL, 'Active', NULL),
-(72, 'nathay tamrat', 5, NULL, 70, 'hayal', 'tamrat', 'regist@bus.com', '0916048977', 'M', NULL, NULL, 'Active', NULL),
-(73, 'hayal tamrat', 1, NULL, NULL, 'nathay', 'tamrat', 'astu@nathayblog.com', '0916048977', 'M', NULL, NULL, 'Active', NULL),
-(75, 'hayal tamrat', 4, NULL, 70, 'nathay', 'tamrat', 'hager@temechain.com', '0916048977', 'M', NULL, NULL, 'Active', NULL),
-(78, 'hayal tamrat', 4, NULL, 70, 'nathay', 'tamrat', 'hager1@temechain.com', '0916048977', 'M', NULL, NULL, 'Active', NULL),
-(82, 'hayal tamrat', 4, 1, 49, 'hayal', 'tamrat', 'hager22@temechain.com', '0916048977', 'M', NULL, NULL, 'Active', NULL),
-(83, 'Hayal Tamrat', 5, NULL, NULL, 'Hayal', 'Tamrat', 'Hayalt@hu.edu.et', '0916048977', 'M', NULL, NULL, 'Active', NULL),
-(84, 'Hayal ', 1, NULL, NULL, 'Nathay ', 'Nathay ', 'Nathantamrat50@gmail.com', '90188837377', 'M', NULL, NULL, 'Active', NULL),
-(85, 'nathay tamrat', 5, NULL, NULL, 'nathay', 'tamrat', 'astu@nathayblog.et', '0916048977', 'M', NULL, NULL, 'Active', NULL),
-(86, 'agent', 6, NULL, 50, 'agent', 'agent', 'agent@lonche.com', 'itp@123', 'M', NULL, NULL, 'Active', NULL),
-(89, 'Yeamlak Tamrat', 4, NULL, NULL, 'Yeamlak', 'Tamrat', 'casher@lonche.com', '0916048977', 'F', NULL, NULL, 'Active', NULL),
-(90, 'Liyu Tamrat', 7, 1, NULL, 'super', 'user', 'superuser@lonche.com', '0916048977', 'M', NULL, NULL, 'Active', NULL),
-(91, 'trafik', 2, 1, NULL, 'menarya', 'trafik', 'menarya@lonche.com', '0988883388', 'M', NULL, NULL, 'Active', NULL),
-(92, 'manager@lonche', 3, 1, NULL, 'manager1', 'manager', 'manager@loche.com', '0916048977', 'M', NULL, NULL, 'Active', NULL),
-(94, 'Hayal Tmrat Girum', 3, 1, NULL, 'owner', 'Tamrat', 'kidoastu1993@gmail.com', '0916048977', 'M', NULL, NULL, 'Active', NULL),
-(95, 'tsegi', 7, 1, NULL, 'tsega', 'gosaye', 'tsegagosaye17@gmail.com', '0909090909', 'F', NULL, NULL, 'Active', NULL);
+INSERT INTO `employees` (`employee_id`, `name`, `role_id`, `department_id`, `supervisor_id`, `fname`, `lname`, `email`, `phone`, `sex`, `position`, `dateOfJoining`, `status`, `profileImage`, `college_id`, `employee_type`, `age`, `year_of_birth`, `year_of_employment`, `qualification_level`, `qualification_subject`, `year_of_upgrading`, `competence_level`, `competence_occupation`, `citizen_address`, `mobile`, `occupation_on_training`, `employed_work_process`, `specialization`, `years_of_experience`, `emergency_contact_name`, `emergency_contact_phone`, `emergency_contact_relationship`, `created_by`, `document_path`) VALUES
+(21, 'www www', 1, 1, NULL, 'hayal', 'tamrat', NULL, '0916048977', NULL, NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(34, 'hayaltame', NULL, 2, 21, 'ggg', 'ggg', 'beki@gmail.com', '0934556621', 'F', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(36, 'hayaltame', NULL, 2, 0, 'some', 'one', 'bekeei@gmail.com', '0934556621', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(37, 'hayaltame111', 1, NULL, NULL, 'some11', 'tame', 'oneq@gmail.com', '0934556688', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(38, 'hayaltame3333', 1, NULL, NULL, 'aaa', 'a', 'one1a111@gmail.com', '0934556111', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(39, 'hayaltame1114444', 1, NULL, NULL, 'some00', 'one11', 'one222@gmail.com', '0934556688', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(40, 'hayaltame1114444444', 1, NULL, NULL, 'yeab444', 'one4444', 'beki444@gmail.com', '0934556444', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(41, 'hayaltame444', 1, NULL, NULL, 'yeabeee', 'eeee', 'eeeee@gmail.com', '0934556644', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(43, 'rtttttt44', 1, 1, NULL, 'yeabeee', 'eeee', 'eeee44e@gmail.com', '0934556677', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(45, 'tttttttttttt111', 1, NULL, NULL, 'yeabrrr', 'tamer', 'onerrr@gmail.com', '0934556655', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(46, 'bekele woya', 8, NULL, NULL, 'bekele', 'woya', 'woya@gmail.com', '0933499094', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(47, 'admin admin', 1, 2, 1, 'admin', 'admin', 'admin@email.com', '123-456-7890', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(48, 'hylt', 8, 1, 0, 'hl', 'tm', 'hl@gmail.com', '0934556644', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(49, 'yonas', 2, NULL, NULL, 'yonas', 'ceo', 'yonas@itp.org', '0933499093', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(50, 'simegn', 5, 2, 49, 'geter', 'geter', 'simegn@itp.org', '0933499094', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(51, 'hayal@itp.org', 8, 2, 50, 'hayal', 'hayal', 'hayal@itp.org', '0933499097', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(54, 'hayalt@itp.org', 8, 2, 0, 'hayalt', 'hayalt', 'hayalt@itp.org', '0933499097', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(55, 'abebe', 4, NULL, 0, 'abebe', 'abe', 'abe@itp.et', '0934556624', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(56, '333333333', 4, 2, 49, 'some00333333', 'one333333', 'beki33333333333@gmail.com', '0934556333', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(57, 'staf', 8, 2, 56, 'staf', 'staf', 'staf@gmail.com', '0934556688', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(58, 'nebyat', 6, 2, 50, 'nebyat', 'nebyat', 'nebyat@itp.et', '093455444', 'F', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(59, 'ewunetu', 7, 2, 58, 'ewunetu', 'ewunetu', 'ewunetu@itp.et', '0934556453', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(60, 'general', 3, NULL, 49, 'general', 'manager', 'manager@itp.et', '0933499366', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(62, 'staf1', 8, 2, 66, 'staf1', 'staf1', 'staf1@itp.et', '0934556688', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(63, 'hayalta4444', 6, 2, 50, 'some', 'one', 'berrrrrki@gmail.com', '0934556555', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(64, 'yeabeeeee', 1, NULL, NULL, 'some', 'one', 'eeee@gmail.com', '0934556688', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(65, 'team leader', 7, 2, 58, 'teaml', 'teaml', 'teaml@gmail.com', '09373773333', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(66, 'team leader', 7, 2, 58, 'teamleader', 'teamleader', 'teamleader@gmail.com', '09373773333', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(67, 'hayal', 1, NULL, NULL, 'hayal', 'tamrat', 'hayal@itp.it', '0916048977', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(68, 'hayal', 8, 2, 65, 'hayal', 'tamrat', 'hayalt@itp.it', '0916048977', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(69, 'registrar@gmail.com', 5, NULL, NULL, 'registrar', 'registrar', 'registrar@gmail.com', '0916048977', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(70, 'Nathan', 1, NULL, NULL, 'Hayal', 'Girum', 'nathan@itp.et', '0976180462', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(71, 'Hayal Tamrat Girum', 3, NULL, NULL, 'Hayal', 'Girum', 'hayal@gmai.com', '0976180462', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(72, 'nathay tamrat', 5, NULL, 70, 'hayal', 'tamrat', 'regist@bus.com', '0916048977', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(73, 'hayal tamrat', 1, NULL, NULL, 'nathay', 'tamrat', 'astu@nathayblog.com', '0916048977', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(75, 'hayal tamrat', 4, NULL, 70, 'nathay', 'tamrat', 'hager@temechain.com', '0916048977', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(78, 'hayal tamrat', 4, NULL, 70, 'nathay', 'tamrat', 'hager1@temechain.com', '0916048977', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(82, 'hayal tamrat', 4, 1, 49, 'hayal', 'tamrat', 'hager22@temechain.com', '0916048977', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(83, 'Hayal Tamrat', 5, NULL, NULL, 'Hayal', 'Tamrat', 'Hayalt@hu.edu.et', '0916048977', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(84, 'Hayal ', 1, NULL, NULL, 'Nathay ', 'Nathay ', 'Nathantamrat50@gmail.com', '90188837377', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(85, 'nathay tamrat', 5, NULL, NULL, 'nathay', 'tamrat', 'astu@nathayblog.et', '0916048977', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(86, 'agent', 6, NULL, 50, 'agent', 'agent', 'agent@lonche.com', 'itp@123', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(89, 'Yeamlak Tamrat', 4, NULL, NULL, 'Yeamlak', 'Tamrat', 'casher@lonche.com', '0916048977', 'F', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(90, 'Liyu Tamrat', 7, 1, NULL, 'super', 'user', 'superuser@lonche.com', '0916048977', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(91, 'trafik', 2, 1, NULL, 'menarya', 'trafik', 'menarya@lonche.com', '0988883388', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(92, 'manager@lonche', 3, 1, NULL, 'manager1', 'manager', 'manager@loche.com', '0916048977', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(94, 'Hayal Tmrat Girum', 3, 1, NULL, 'owner', 'Tamrat', 'kidoastu1993@gmail.com', '0916048977', 'M', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(95, 'tsegi', 7, 1, NULL, 'tsega', 'gosaye', 'tsegagosaye17@gmail.com', '0909090909', 'F', NULL, NULL, 'Active', NULL, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(96, 'Test Employee', 3, 1, NULL, NULL, NULL, 'test@example.com', NULL, NULL, 'Administrator', NULL, 'Active', NULL, 1, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, NULL),
+(97, 'Test Trainer', 7, 1, NULL, NULL, NULL, 'trainer@example.com', NULL, 'M', 'Senior Trainer', NULL, 'Active', NULL, 2, 'trainer', NULL, NULL, NULL, 'Master\'s Degree', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Computer Science', NULL, NULL, NULL, NULL, 1, NULL),
+(98, 'Debug Trainer', 7, 1, NULL, NULL, NULL, 'debug@example.com', NULL, 'F', 'Senior Trainer', NULL, 'Active', NULL, 2, 'trainer', NULL, NULL, NULL, 'Bachelor\'s Degree', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Information Technology', NULL, NULL, NULL, NULL, 1, NULL),
+(99, 'Direct Test', NULL, NULL, NULL, NULL, NULL, 'direct@test.com', NULL, NULL, NULL, NULL, 'Active', NULL, NULL, 'trainer', 25, NULL, NULL, NULL, 'Direct Subject', NULL, NULL, NULL, NULL, NULL, 'Direct Training', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(100, 'Final Test Trainer', 7, 1, NULL, NULL, NULL, 'final@example.com', NULL, 'M', 'Lead Trainer', NULL, 'Active', NULL, 2, 'trainer', NULL, NULL, NULL, 'Master\'s Degree', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Software Engineering', 5, NULL, NULL, NULL, 1, NULL),
+(101, 'Corrected Test Trainer', 7, 1, NULL, NULL, NULL, 'corrected@example.com', NULL, 'F', 'Senior Database Trainer', NULL, 'Active', NULL, 3, 'trainer', NULL, NULL, NULL, 'Master\'s Degree', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Computer Science', 6, NULL, NULL, NULL, 1, NULL),
+(103, 'Yeamlak Tamrat', 3, 2, NULL, 'Yeamlak', 'Tamrat', 'beamlak1@gmail.com', '091121212', 'M', 'ok', '2025-08-15', 'Active', NULL, 1, 'trainer', 21, '1950', '1990', 'a', 'ac', '1990', '2', 'ok', 'Oxfordshire Oxfordshire', '091121212', 'ok', NULL, 'ac', 35, NULL, NULL, NULL, 21, 'uploads/employee-documents/employee-1755888589000-193653463.jpg'),
+(104, 'Yeamlak Tamrat', 3, 6, NULL, 'Yeamlak', 'Tamrat', 'beamlak@gmail.com', '090909090', 'M', 'ok', '2025-08-11', 'Active', NULL, 1, 'admin', 15, '2010', '2023', 'a', 'cs', '2012', 'Level II', 'ok', 'Oxfordshire Oxfordshire', '090909090', NULL, 'okk', 'cs', 2, NULL, NULL, NULL, 21, 'uploads/employee-documents/employee-1755890132730-290001936.jpeg'),
+(105, 'Yeamlak Tamrat', 3, 1, NULL, 'Yeamlak', 'Tamrat', 'beamlakty@gmail.com', '09900990', 'M', NULL, '2025-08-13', 'Active', NULL, 1, 'admin', 15, '2010', '2021', 'A', 'ac', '2021', 'Level III', 'ok', 'Oxfordshire Oxfordshire', '09900990', NULL, 'OK', 'ac', 4, NULL, NULL, NULL, 21, 'uploads/employee-documents/employee-1755927983013-879299832.jpg'),
+(106, 'Yeamlak Tamrat', 2, 6, NULL, 'Yeamlak', 'Tamrat', 'contentmanager@gmail.com', '091919991', 'M', 'ok', '2025-08-12', 'Active', NULL, 4, 'admin', 32, '1993', '2021', 'A', 'IT', '2021', 'Level II', 'OK', 'Oxfordshire Oxfordshire', '091919991', NULL, 'OK', 'IT', 4, NULL, NULL, NULL, 21, 'uploads/employee-documents/employee-1755938581474-24537810.jpeg');
 
 -- --------------------------------------------------------
 
@@ -386,7 +483,7 @@ CREATE TABLE `job_vacancies` (
 
 INSERT INTO `job_vacancies` (`id`, `title`, `department`, `description`, `requirements`, `responsibilities`, `salary_range`, `location`, `employment_type`, `experience_level`, `education_required`, `skills_required`, `deadline`, `status`, `created_by`, `created_at`, `updated_at`) VALUES
 (1, 'markating', 'Marketing', 'marketing ', 'marketing ', 'marketing ', '32000', 'Addis Ababa', 'contract', 'mid', 'Msc', 'marketing ', '2025-07-24', 'active', 18, '2025-07-12 13:54:46', '2025-07-12 19:13:16'),
-(2, 'software development', 'Engineering', 'hayal ', 'node js', 'development', '50000', 'AA', 'full_time', 'mid', 'Msc', 'react', '2025-07-25', 'active', 21, '2025-07-12 19:04:59', '2025-07-12 19:05:31');
+(2, 'software development', 'Engineering', 'hayal ', 'node js', 'development', '50010', 'AA', 'full_time', 'mid', 'Msc', 'react', '2025-07-25', 'active', 21, '2025-07-12 19:04:59', '2025-07-12 19:05:31');
 
 -- --------------------------------------------------------
 
@@ -526,7 +623,12 @@ INSERT INTO `login_attempts` (`id`, `user_id`, `attempt_time`, `success`, `ip_ad
 (104, 27, '2025-07-17 17:50:56', 0, '127.0.0.1', 'Chrome 138.0.0 / Windows 10.0.0', 'Localhost'),
 (105, 3, '2025-07-17 17:52:19', 0, '127.0.0.1', 'Chrome 138.0.0 / Windows 10.0.0', 'Localhost'),
 (106, 21, '2025-07-17 17:53:03', 0, '127.0.0.1', 'Chrome 138.0.0 / Windows 10.0.0', 'Localhost'),
-(107, 21, '2025-07-17 17:54:24', 0, '127.0.0.1', 'Chrome 138.0.0 / Windows 10.0.0', 'Localhost');
+(107, 21, '2025-07-17 17:54:24', 0, '127.0.0.1', 'Chrome 138.0.0 / Windows 10.0.0', 'Localhost'),
+(108, 21, '2025-08-22 12:14:13', 1, '127.0.0.1', 'Chrome 139.0.0 / Linux 0.0.0', 'Localhost'),
+(109, 21, '2025-08-22 12:14:24', 1, '127.0.0.1', 'Chrome 139.0.0 / Linux 0.0.0', 'Localhost'),
+(110, 21, '2025-08-22 12:14:37', 1, '127.0.0.1', 'Chrome 139.0.0 / Linux 0.0.0', 'Localhost'),
+(111, 21, '2025-08-22 12:48:49', 1, '127.0.0.1', 'Chrome 139.0.0 / Linux 0.0.0', 'Localhost'),
+(112, 21, '2025-08-23 04:27:13', 1, '127.0.0.1', 'Chrome 139.0.0 / Linux 0.0.0', 'Localhost');
 
 -- --------------------------------------------------------
 
@@ -624,10 +726,10 @@ CREATE TABLE `roles` (
 
 INSERT INTO `roles` (`role_id`, `role_name`, `status`) VALUES
 (1, 'Admin', 1),
-(2, 'transport_birro', 1),
-(3, 'system_owner', 1),
-(4, 'casher', 0),
-(5, 'registar', 0),
+(2, 'accadamician', 1),
+(3, 'admin staff', 1),
+(4, 'Hr Admin', 1),
+(5, 'registar', 1),
 (6, 'agent', 0),
 (7, 'super user', 0),
 (8, 'super admin', 0);
@@ -665,54 +767,61 @@ CREATE TABLE `users` (
   `avatar_url` varchar(255) DEFAULT NULL,
   `department_id` int(11) DEFAULT NULL,
   `failed_attempts` int(11) DEFAULT 0,
-  `lock_until` datetime DEFAULT NULL
+  `lock_until` datetime DEFAULT NULL,
+  `college_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`user_id`, `employee_id`, `user_name`, `password`, `created_at`, `status`, `online_flag`, `updated_at`, `role_id`, `avatar_url`, `department_id`, `failed_attempts`, `lock_until`) VALUES
-(1, 21, 'www', '$2b$10$wr58QSzvz/HWVMz5U8ttv.RQTQOkHMEf2S/SkYOt2eD9sTsAeQtuy', '2024-11-06 11:46:34', '1', 0, '2024-11-11 04:13:18', NULL, NULL, NULL, 0, NULL),
-(2, 43, 'eeee44e@gmail.com', '$2b$10$AV7kZtfFlQwS7c34ryaCx.vgwWb7jy0pPqhDpT2Sxa/Vd5YakkEuK', '2024-11-10 23:08:20', '1', 0, '2025-07-14 18:07:08', 2, NULL, NULL, 0, NULL),
-(3, 45, 'onerrr@gmail.com', '$2b$10$IFpKwiESxD3No7PwC.ShsuiJuy9.tcPRMJtEMTfQYi6Uy/NUajxZu', '2024-11-10 23:18:44', '1', 1, '2025-07-17 17:52:19', 1, NULL, NULL, 1, NULL),
-(4, 46, 'woya@gmail.com', '$2b$10$OD8jd/hPB7ZcH9GJy9Pr/.ovNiO1QVNCgFbrcrXULwcH7kp.qdq.S', '2024-11-10 23:59:47', '1', 0, '2024-11-11 05:47:43', 8, NULL, NULL, 0, NULL),
-(5, 48, 'hl@gmail.com', '$2b$10$Q1KieAzu4fFS0dwh6Vxty.GOgUu8xL2SyAaS1Vis9DkeMQxSt30Pq', '2024-11-11 22:30:13', '1', 0, '2025-06-26 12:39:44', 4, NULL, NULL, 0, NULL),
-(6, 49, 'yonas@itp.org', '$2b$10$ktd.Y1lVFq4EOyoKkDZnhu6yJ1JNWBykmrpmFUKMBsSo4b4/IP/7K', '2024-11-11 23:41:28', '1', 0, '2024-11-20 04:42:44', 2, NULL, NULL, 0, NULL),
-(7, 50, 'simegn@itp.org', '$2b$10$6SbuHMtP7XMbwVdakqMr1eTCY9QIhHxabIBHgI.CZpN9wqROs8rr6', '2024-11-11 23:44:17', '1', 1, '2025-04-17 11:19:49', NULL, '/uploads/1744466201370-photo_2024-12-21_09-16-01.jpg', NULL, 0, NULL),
-(8, 51, 'hayal@itp.org', '$2b$10$8QrTeqaPBAnLZXdCHqzkMuoxgUc63IWsXMR6Qfn8FtaQ9kjaJCyWm', '2024-11-11 23:45:43', '1', 1, '2025-05-21 04:09:56', 8, NULL, NULL, 0, NULL),
-(9, 54, 'hayalt@itp.org', '$2b$10$fiYp77BQuhOk9eZDl77hROkL7aEYeyLZPojgbfij/YpVo0B6IVENi', '2024-11-11 23:46:31', '1', 0, '2024-11-12 03:28:01', 8, NULL, NULL, 0, NULL),
-(10, 55, 'abe@itp.et', '$2b$10$6Ptxn.bGG6WonQvgi08ZVeWOKhIf414AU.Rf8biKg5DM5w6.t6R2W', '2024-11-12 03:52:54', '1', 1, '2024-11-13 00:03:58', 4, NULL, NULL, 0, NULL),
-(11, 56, 'beki33333333333@gmail.com', '$2b$10$IWJvw/rD3F5c75O71ue3JepPiTXnxsZeiUYygfRFDYGfZqeMF.IPK', '2024-11-12 03:56:31', '1', 0, '2024-11-12 03:56:31', 4, NULL, NULL, 0, NULL),
-(12, 57, 'staf@gmail.com', '$2b$10$Wvcpmhed2gaCmaVQH3dEZeykZqhum/Szobc3rRweHGIhpzKO.Rxha', '2024-11-12 03:59:33', '1', 0, '2024-11-14 04:26:14', 8, NULL, NULL, 0, NULL),
-(13, 58, 'nebyat@itp.et', '$2b$10$5X.XMQQMRay/6zJDdEReI.MLzAcq.ed9xBk5OO4UELVvaG2fckm5K', '2024-11-14 01:06:52', '1', 0, '2025-04-12 05:53:03', 6, NULL, NULL, 0, NULL),
-(14, 59, 'ewunetu@itp.et', '$2b$10$KPHuhuIPciZ.cVg0BBCK7egMKZQqsXsNGzX/Xq4C0nBzUEEsTj62u', '2024-11-14 01:08:04', '1', 1, '2024-12-30 12:02:02', 7, NULL, NULL, 0, NULL),
-(15, 60, 'manager@itp.et', '$2b$10$YC.zK8u88DfkTI.fTL7I2eZkFV0jTSPb7I3IVl99z0htdWzu9/qdW', '2024-11-14 01:34:28', '1', 0, '2024-11-19 22:29:05', 3, NULL, NULL, 0, NULL),
-(16, 62, 'staf1@itp.et', '$2b$10$lQ6KmKDb38sqinMsHODD8Ocj3vR/s5y1R5EfHVaT8lCPAqULU.9i6', '2024-11-14 05:27:48', '1', 0, '2025-04-04 07:49:05', 8, NULL, NULL, 0, NULL),
-(17, 63, 'berrrrrki@gmail.com', '$2b$10$44MGUjABmQFL6C39kRH.wevHAvA0URLNg0NiGjhSVMQEZLJ92VFTa', '2024-11-22 03:02:23', '1', 0, '2024-11-22 03:02:23', 6, NULL, NULL, 0, NULL),
-(18, 64, 'eeee@gmail.com', '$2b$10$At9MAsh2IMjheS6B5znOmOeVCR9glbD8gKFUsKmF/mIKEqHv5P3FO', '2024-11-24 23:59:11', '1', 1, '2025-07-06 23:04:54', 1, NULL, NULL, 0, NULL),
-(19, 65, 'teaml@gmail.com', '$2b$10$JoeJGvKXSfm.k0e43w0f2ujj1WWrzCZs40TF9NeqAKpWFZSQPpKxK', '2024-12-31 23:33:13', '1', 0, '2024-12-31 23:37:34', 7, NULL, NULL, 0, NULL),
-(20, 66, 'teamleader@gmail.com', '$2b$10$v21VD/dHFsS60VJJTf04k.RdtLdNpWIqkiO1mTIjvbzOEuE.42ilm', '2025-01-12 22:17:46', '1', 0, '2025-02-21 08:21:26', 7, NULL, NULL, 0, NULL),
-(21, 67, 'hayal@itp.it', '$2b$10$qefqaosG.peJU7AFlD4tL.61yz.TYtP1M0MZCPZq49DpoRACbmObW', '2025-02-15 08:06:02', '1', 1, '2025-07-17 17:54:24', 1, '/uploads/1744549017364-1000068407.jpg', NULL, 4, NULL),
-(22, 68, 'hayalt@itp.it', '$2b$10$cfR/7GRO7CSppqM8sOd8p.aO8mqJ8JqCbgDgw.12XhH3Qta.suDka', '2025-02-15 08:07:40', '1', 1, '2025-07-11 02:18:18', 8, NULL, NULL, 0, NULL),
-(23, 69, 'registrar@gmail.com', '$2b$10$JFBWyoKSFZPplsOQ2kQwcuprwdR81.YSNq5gtcq4EE1mar.vvuOAC', '2025-03-01 11:34:40', '1', 1, '2025-03-03 22:57:07', 5, NULL, NULL, 0, NULL),
-(24, 70, 'nathan@itp.et', '$2b$10$ZC5FMYA2L2U2mwyA8ecV2OnJ6G4VXQRk4C1lOkSvfCGfpb48a3ig2', '2025-04-03 05:07:01', '1', 1, '2025-05-23 18:35:30', 1, NULL, NULL, 0, NULL),
-(25, 71, 'hayal@gmai.com', '$2b$10$f5OlO3Z5wTJQvzbMJ/sbZudjaSo5aq2Wy/QqDK0B/MEH7HM2wcnGa', '2025-04-03 05:09:23', '1', 1, '2025-06-22 15:23:09', 3, NULL, 1, 0, NULL),
-(26, 72, 'regist@bus.com', '$2b$10$EmH.IUj7tLqK3/qAzGsYt.7hvgjzDqvq0NXab9B7fQr5nlwAz.7JS', '2025-04-03 05:12:30', '1', 1, '2025-05-23 18:39:13', 5, '/uploads/1745142842358-hayal.jpg', 1, 0, NULL),
-(27, 73, 'astu@nathayblog.com', '$2b$10$pZmtDgyj6IXj4gJTiQaUTu549.zUPhP9xSPce0H7Lpv9anBEHH802', '2025-04-03 05:13:57', '1', 0, '2025-07-17 17:50:56', 1, NULL, 1, 1, NULL),
-(28, 75, 'hager@temechain.com', '$2b$10$ZWHXATmlE53z0PnoW.60N.u96OTbey/3V9KK7Wf2wRFnsz3hRB9xC', '2025-04-03 05:20:08', '1', 0, '2025-05-23 18:39:03', 4, NULL, 1, 0, NULL),
-(29, 78, 'hager1@temechain.com', '$2b$10$8iuZQYcFRgXSLzxhDZHfyOblndo6zY9WR5CAqjJmMcFDRHqKV/Fuu', '2025-04-03 05:21:50', '1', 0, '2025-05-23 18:38:58', 4, NULL, 1, 0, NULL),
-(30, 82, 'hager22@temechain.com', '$2b$10$Uz5bqrPC9R7ehMYAeBBgcehj2rsKaAgxljAFeCpeUuG4hKUgoJx.2', '2025-04-04 00:13:08', '1', 0, '2025-05-23 18:38:54', 4, NULL, 1, 0, NULL),
-(31, 83, 'Hayalt@hu.edu.et', '$2b$10$kO130SYiVzJGTnFOjFj1oe6u9BaqVX4ucxLv8T1lpx8wWAGaq2UmO', '2025-04-12 02:56:33', '1', 0, '2025-05-23 18:38:48', 5, NULL, 1, 0, NULL),
-(32, 84, 'Nathantamrat50@gmail.com', '$2b$10$bLJp43h2rRV1YbPk1bDJD.kXDp4kQuhW70WTPxbF0Z8hMnyQk6Dkq', '2025-04-12 04:36:57', '1', 1, '2025-07-14 17:20:28', 1, NULL, 1, 0, NULL),
-(33, 85, 'astu@nathayblog.et', '$2b$10$F/KnPiHj/cL7R/HrDSCFwuRgsbLmZRPVDG3nrHk8Hwk21wytxTm.i', '2025-04-12 07:17:22', '1', 1, '2025-05-23 18:38:40', 5, NULL, 1, 0, NULL),
-(34, 86, 'agent@lonche.com', '$2b$10$w.AmoLlg2mBy2UjMBxIZPuCLsukOK01ho1KmljN1hjPmzT8n4N4cu', '2025-04-16 05:00:29', '1', 1, '2025-06-25 17:49:44', 6, NULL, 1, 0, NULL),
-(35, 89, 'casher@lonche.com', '$2b$10$mJnbd1tWqYLj8N7IB2T9TebFEAVDYIHL0JVNvpLXZkjnk0XK.o9xC', '2025-05-18 16:06:00', '1', 1, '2025-06-25 17:53:27', 4, NULL, 1, 5, '2025-05-25 17:58:12'),
-(36, 90, 'superuser@lonche.com', '$2y$10$8ZZKrnLME1bR1u2HMUdvO.v1tzR6fLUuTamivOofAtc0h94eghOtO', '2025-05-22 21:58:47', '1', 1, '2025-07-17 16:09:14', 7, NULL, 1, 2, NULL),
-(37, 91, 'menarya@lonche.com', '$2b$10$hDp7P7FVSsLMwR7eC5a2z.8Ec6teVXjnOiWv278Vb.0jt..0Ww59W', '2025-05-23 18:36:59', '1', 1, '2025-05-24 15:48:34', 2, NULL, 1, 0, NULL),
-(38, 92, 'manager@loche.com', '$2b$10$esy8cd.nLJYUGctO.oDSaeSLG2flTAxslyb8LN85jcH/xhQDIaTeq', '2025-06-22 15:21:30', '1', 0, '2025-06-22 15:21:30', 3, NULL, 1, 0, NULL),
-(39, 94, 'kidoastu1993@gmail.com', '$2b$10$.Fmb4U.3Yb/KF5jDEhxDiuW4NpIzjpP3.3ULMscfC1ATGIfi9K8um', '2025-06-25 20:58:40', '1', 1, '2025-07-14 17:17:23', 1, NULL, 1, 0, NULL),
-(40, 95, 'tsegagosaye17@gmail.com', '$2b$10$TZv6URe6PVXNYb2mJ4bp9OWPq2TI9XohRR45j6DvOjYcAcPMBNcgq', '2025-07-14 17:36:55', '1', 1, '2025-07-14 17:37:14', 7, NULL, 1, 0, NULL);
+INSERT INTO `users` (`user_id`, `employee_id`, `user_name`, `password`, `created_at`, `status`, `online_flag`, `updated_at`, `role_id`, `avatar_url`, `department_id`, `failed_attempts`, `lock_until`, `college_id`) VALUES
+(1, 21, 'www', '$2b$10$wr58QSzvz/HWVMz5U8ttv.RQTQOkHMEf2S/SkYOt2eD9sTsAeQtuy', '2024-11-06 11:46:34', '1', 0, '2024-11-11 04:13:18', NULL, NULL, NULL, 0, NULL, NULL),
+(2, 43, 'eeee44e@gmail.com', '$2b$10$AV7kZtfFlQwS7c34ryaCx.vgwWb7jy0pPqhDpT2Sxa/Vd5YakkEuK', '2024-11-10 23:08:20', '1', 0, '2025-07-14 18:07:08', 2, NULL, NULL, 0, NULL, NULL),
+(3, 45, 'onerrr@gmail.com', '$2b$10$IFpKwiESxD3No7PwC.ShsuiJuy9.tcPRMJtEMTfQYi6Uy/NUajxZu', '2024-11-10 23:18:44', '1', 1, '2025-07-17 17:52:19', 1, NULL, NULL, 1, NULL, NULL),
+(4, 46, 'woya@gmail.com', '$2b$10$OD8jd/hPB7ZcH9GJy9Pr/.ovNiO1QVNCgFbrcrXULwcH7kp.qdq.S', '2024-11-10 23:59:47', '1', 0, '2024-11-11 05:47:43', 8, NULL, NULL, 0, NULL, NULL),
+(5, 48, 'hl@gmail.com', '$2b$10$Q1KieAzu4fFS0dwh6Vxty.GOgUu8xL2SyAaS1Vis9DkeMQxSt30Pq', '2024-11-11 22:30:13', '1', 0, '2025-06-26 12:39:44', 4, NULL, NULL, 0, NULL, NULL),
+(6, 49, 'yonas@itp.org', '$2b$10$ktd.Y1lVFq4EOyoKkDZnhu6yJ1JNWBykmrpmFUKMBsSo4b4/IP/7K', '2024-11-11 23:41:28', '1', 0, '2024-11-20 04:42:44', 2, NULL, NULL, 0, NULL, NULL),
+(7, 50, 'simegn@itp.org', '$2b$10$6SbuHMtP7XMbwVdakqMr1eTCY9QIhHxabIBHgI.CZpN9wqROs8rr6', '2024-11-11 23:44:17', '1', 1, '2025-04-17 11:19:49', NULL, '/uploads/1744466201370-photo_2024-12-21_09-16-01.jpg', NULL, 0, NULL, NULL),
+(8, 51, 'hayal@itp.org', '$2b$10$8QrTeqaPBAnLZXdCHqzkMuoxgUc63IWsXMR6Qfn8FtaQ9kjaJCyWm', '2024-11-11 23:45:43', '1', 1, '2025-05-21 04:09:56', 8, NULL, NULL, 0, NULL, NULL),
+(9, 54, 'hayalt@itp.org', '$2b$10$fiYp77BQuhOk9eZDl77hROkL7aEYeyLZPojgbfij/YpVo0B6IVENi', '2024-11-11 23:46:31', '1', 0, '2024-11-12 03:28:01', 8, NULL, NULL, 0, NULL, NULL),
+(10, 55, 'abe@itp.et', '$2b$10$6Ptxn.bGG6WonQvgi08ZVeWOKhIf414AU.Rf8biKg5DM5w6.t6R2W', '2024-11-12 03:52:54', '1', 1, '2024-11-13 00:03:58', 4, NULL, NULL, 0, NULL, NULL),
+(11, 56, 'beki33333333333@gmail.com', '$2b$10$IWJvw/rD3F5c75O71ue3JepPiTXnxsZeiUYygfRFDYGfZqeMF.IPK', '2024-11-12 03:56:31', '1', 0, '2024-11-12 03:56:31', 4, NULL, NULL, 0, NULL, NULL),
+(12, 57, 'staf@gmail.com', '$2b$10$Wvcpmhed2gaCmaVQH3dEZeykZqhum/Szobc3rRweHGIhpzKO.Rxha', '2024-11-12 03:59:33', '1', 0, '2024-11-14 04:26:14', 8, NULL, NULL, 0, NULL, NULL),
+(13, 58, 'nebyat@itp.et', '$2b$10$5X.XMQQMRay/6zJDdEReI.MLzAcq.ed9xBk5OO4UELVvaG2fckm5K', '2024-11-14 01:06:52', '1', 0, '2025-04-12 05:53:03', 6, NULL, NULL, 0, NULL, NULL),
+(14, 59, 'ewunetu@itp.et', '$2b$10$KPHuhuIPciZ.cVg0BBCK7egMKZQqsXsNGzX/Xq4C0nBzUEEsTj62u', '2024-11-14 01:08:04', '1', 1, '2024-12-30 12:02:02', 7, NULL, NULL, 0, NULL, NULL),
+(15, 60, 'manager@itp.et', '$2b$10$YC.zK8u88DfkTI.fTL7I2eZkFV0jTSPb7I3IVl99z0htdWzu9/qdW', '2024-11-14 01:34:28', '1', 0, '2024-11-19 22:29:05', 3, NULL, NULL, 0, NULL, NULL),
+(16, 62, 'staf1@itp.et', '$2b$10$lQ6KmKDb38sqinMsHODD8Ocj3vR/s5y1R5EfHVaT8lCPAqULU.9i6', '2024-11-14 05:27:48', '1', 0, '2025-04-04 07:49:05', 8, NULL, NULL, 0, NULL, NULL),
+(17, 63, 'berrrrrki@gmail.com', '$2b$10$44MGUjABmQFL6C39kRH.wevHAvA0URLNg0NiGjhSVMQEZLJ92VFTa', '2024-11-22 03:02:23', '1', 0, '2024-11-22 03:02:23', 6, NULL, NULL, 0, NULL, NULL),
+(18, 64, 'eeee@gmail.com', '$2b$10$At9MAsh2IMjheS6B5znOmOeVCR9glbD8gKFUsKmF/mIKEqHv5P3FO', '2024-11-24 23:59:11', '1', 1, '2025-07-06 23:04:54', 1, NULL, NULL, 0, NULL, NULL),
+(19, 65, 'teaml@gmail.com', '$2b$10$JoeJGvKXSfm.k0e43w0f2ujj1WWrzCZs40TF9NeqAKpWFZSQPpKxK', '2024-12-31 23:33:13', '1', 0, '2024-12-31 23:37:34', 7, NULL, NULL, 0, NULL, NULL),
+(20, 66, 'teamleader@gmail.com', '$2b$10$v21VD/dHFsS60VJJTf04k.RdtLdNpWIqkiO1mTIjvbzOEuE.42ilm', '2025-01-12 22:17:46', '1', 0, '2025-02-21 08:21:26', 7, NULL, NULL, 0, NULL, NULL),
+(21, 67, 'hayal@itp.it', '$2b$10$qefqaosG.peJU7AFlD4tL.61yz.TYtP1M0MZCPZq49DpoRACbmObW', '2025-02-15 08:06:02', '1', 1, '2025-08-22 12:14:13', 1, '/uploads/1744549017364-1000068407.jpg', NULL, 0, NULL, NULL),
+(22, 68, 'hayalt@itp.it', '$2b$10$cfR/7GRO7CSppqM8sOd8p.aO8mqJ8JqCbgDgw.12XhH3Qta.suDka', '2025-02-15 08:07:40', '1', 1, '2025-07-11 02:18:18', 8, NULL, NULL, 0, NULL, NULL),
+(23, 69, 'registrar@gmail.com', '$2b$10$JFBWyoKSFZPplsOQ2kQwcuprwdR81.YSNq5gtcq4EE1mar.vvuOAC', '2025-03-01 11:34:40', '1', 1, '2025-03-03 22:57:07', 5, NULL, NULL, 0, NULL, NULL),
+(24, 70, 'nathan@itp.et', '$2b$10$ZC5FMYA2L2U2mwyA8ecV2OnJ6G4VXQRk4C1lOkSvfCGfpb48a3ig2', '2025-04-03 05:07:01', '1', 1, '2025-05-23 18:35:30', 1, NULL, NULL, 0, NULL, NULL),
+(25, 71, 'hayal@gmai.com', '$2b$10$f5OlO3Z5wTJQvzbMJ/sbZudjaSo5aq2Wy/QqDK0B/MEH7HM2wcnGa', '2025-04-03 05:09:23', '1', 1, '2025-06-22 15:23:09', 3, NULL, 1, 0, NULL, NULL),
+(26, 72, 'regist@bus.com', '$2b$10$EmH.IUj7tLqK3/qAzGsYt.7hvgjzDqvq0NXab9B7fQr5nlwAz.7JS', '2025-04-03 05:12:30', '1', 1, '2025-05-23 18:39:13', 5, '/uploads/1745142842358-hayal.jpg', 1, 0, NULL, NULL),
+(27, 73, 'astu@nathayblog.com', '$2b$10$pZmtDgyj6IXj4gJTiQaUTu549.zUPhP9xSPce0H7Lpv9anBEHH802', '2025-04-03 05:13:57', '1', 0, '2025-07-17 17:50:56', 1, NULL, 1, 1, NULL, NULL),
+(28, 75, 'hager@temechain.com', '$2b$10$ZWHXATmlE53z0PnoW.60N.u96OTbey/3V9KK7Wf2wRFnsz3hRB9xC', '2025-04-03 05:20:08', '1', 0, '2025-05-23 18:39:03', 4, NULL, 1, 0, NULL, NULL),
+(29, 78, 'hager1@temechain.com', '$2b$10$8iuZQYcFRgXSLzxhDZHfyOblndo6zY9WR5CAqjJmMcFDRHqKV/Fuu', '2025-04-03 05:21:50', '1', 0, '2025-05-23 18:38:58', 4, NULL, 1, 0, NULL, NULL),
+(30, 82, 'hager22@temechain.com', '$2b$10$Uz5bqrPC9R7ehMYAeBBgcehj2rsKaAgxljAFeCpeUuG4hKUgoJx.2', '2025-04-04 00:13:08', '1', 0, '2025-05-23 18:38:54', 4, NULL, 1, 0, NULL, NULL),
+(31, 83, 'Hayalt@hu.edu.et', '$2b$10$kO130SYiVzJGTnFOjFj1oe6u9BaqVX4ucxLv8T1lpx8wWAGaq2UmO', '2025-04-12 02:56:33', '1', 0, '2025-05-23 18:38:48', 5, NULL, 1, 0, NULL, NULL),
+(32, 84, 'Nathantamrat50@gmail.com', '$2b$10$bLJp43h2rRV1YbPk1bDJD.kXDp4kQuhW70WTPxbF0Z8hMnyQk6Dkq', '2025-04-12 04:36:57', '1', 1, '2025-07-14 17:20:28', 1, NULL, 1, 0, NULL, NULL),
+(33, 85, 'astu@nathayblog.et', '$2b$10$F/KnPiHj/cL7R/HrDSCFwuRgsbLmZRPVDG3nrHk8Hwk21wytxTm.i', '2025-04-12 07:17:22', '1', 1, '2025-05-23 18:38:40', 5, NULL, 1, 0, NULL, NULL),
+(34, 86, 'agent@lonche.com', '$2b$10$w.AmoLlg2mBy2UjMBxIZPuCLsukOK01ho1KmljN1hjPmzT8n4N4cu', '2025-04-16 05:00:29', '1', 1, '2025-06-25 17:49:44', 6, NULL, 1, 0, NULL, NULL),
+(35, 89, 'casher@lonche.com', '$2b$10$mJnbd1tWqYLj8N7IB2T9TebFEAVDYIHL0JVNvpLXZkjnk0XK.o9xC', '2025-05-18 16:06:00', '1', 1, '2025-06-25 17:53:27', 4, NULL, 1, 5, '2025-05-25 17:58:12', NULL),
+(36, 90, 'superuser@lonche.com', '$2y$10$8ZZKrnLME1bR1u2HMUdvO.v1tzR6fLUuTamivOofAtc0h94eghOtO', '2025-05-22 21:58:47', '1', 1, '2025-07-17 16:09:14', 7, NULL, 1, 2, NULL, NULL),
+(37, 91, 'menarya@lonche.com', '$2b$10$hDp7P7FVSsLMwR7eC5a2z.8Ec6teVXjnOiWv278Vb.0jt..0Ww59W', '2025-05-23 18:36:59', '1', 1, '2025-05-24 15:48:34', 2, NULL, 1, 0, NULL, NULL),
+(38, 92, 'manager@loche.com', '$2b$10$esy8cd.nLJYUGctO.oDSaeSLG2flTAxslyb8LN85jcH/xhQDIaTeq', '2025-06-22 15:21:30', '1', 0, '2025-06-22 15:21:30', 3, NULL, 1, 0, NULL, NULL),
+(39, 94, 'kidoastu1993@gmail.com', '$2b$10$.Fmb4U.3Yb/KF5jDEhxDiuW4NpIzjpP3.3ULMscfC1ATGIfi9K8um', '2025-06-25 20:58:40', '1', 1, '2025-07-14 17:17:23', 1, NULL, 1, 0, NULL, NULL),
+(40, 95, 'tsegagosaye17@gmail.com', '$2b$10$TZv6URe6PVXNYb2mJ4bp9OWPq2TI9XohRR45j6DvOjYcAcPMBNcgq', '2025-07-14 17:36:55', '1', 1, '2025-07-14 17:37:14', 7, NULL, 1, 0, NULL, NULL),
+(41, 96, 'test@example.com', '$2b$12$LrTD3R5MR7spgReCzwYksep.jwcaWfCGdnMAjlWd6.HOkD3xDPxk.', '2025-08-22 12:26:29', '1', 0, '2025-08-22 12:26:29', 3, NULL, 1, 0, NULL, NULL),
+(42, 97, 'trainer@example.com', '$2b$12$Pc7SyjBkBH.l7eePiAefj.0HFNBN3TAkoL8.XIJIZoBbsFjM580Z6', '2025-08-22 12:26:43', '1', 0, '2025-08-22 12:26:43', 7, NULL, 1, 0, NULL, NULL),
+(43, 103, 'casher@lonchw', '$2b$12$wUrfa.S/H8OGKbQKGiEYLO6dW7IEuJSWWbt0DPEW2orNp/FSfkdW.', '2025-08-22 14:49:49', '1', 0, '2025-08-22 14:49:49', 3, NULL, 2, 0, NULL, NULL),
+(44, 104, 'onerrr5@gmail.com', '$2b$12$DN12GgPnd918uHswWrc3RORsB5tTEtBj9U6QIHNyqcnoyN4LmQeOy', '2025-08-22 15:15:32', '1', 0, '2025-08-22 15:15:32', 3, NULL, 6, 0, NULL, NULL),
+(45, 105, 'hayal12@itp.it', '$2b$12$WY7v5YqoBfE8pk7d9vhHoe3Q5FtR/IDhLqR/JkttLoTXXjFNBWbla', '2025-08-23 01:46:23', '1', 0, '2025-08-23 01:46:23', 3, NULL, 1, 0, NULL, NULL),
+(46, 106, 'OK', '$2b$12$qGJvflkzODrU1//yKBCOQeoNhpg4wnHzfT5.i4C6ycA0gDJ1AdEMu', '2025-08-23 04:43:01', '1', 0, '2025-08-23 04:43:01', 2, NULL, 6, 0, NULL, NULL);
 
 --
 -- Indexes for dumped tables
@@ -750,6 +859,23 @@ ALTER TABLE `attendance`
   ADD KEY `EmployeeID` (`EmployeeID`);
 
 --
+-- Indexes for table `colleges`
+--
+ALTER TABLE `colleges`
+  ADD PRIMARY KEY (`college_id`),
+  ADD UNIQUE KEY `college_name` (`college_name`),
+  ADD UNIQUE KEY `college_code` (`college_code`);
+
+--
+-- Indexes for table `college_user_assignments`
+--
+ALTER TABLE `college_user_assignments`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_user_college` (`user_id`,`college_id`),
+  ADD KEY `college_id` (`college_id`),
+  ADD KEY `assigned_by` (`assigned_by`);
+
+--
 -- Indexes for table `conversations`
 --
 ALTER TABLE `conversations`
@@ -760,6 +886,14 @@ ALTER TABLE `conversations`
 --
 ALTER TABLE `departments`
   ADD PRIMARY KEY (`department_id`);
+
+--
+-- Indexes for table `education_office_reports`
+--
+ALTER TABLE `education_office_reports`
+  ADD PRIMARY KEY (`report_id`),
+  ADD KEY `college_id` (`college_id`),
+  ADD KEY `generated_by` (`generated_by`);
 
 --
 -- Indexes for table `employeeleave`
@@ -949,10 +1083,28 @@ ALTER TABLE `attendance`
   MODIFY `AttendanceID` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `colleges`
+--
+ALTER TABLE `colleges`
+  MODIFY `college_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `college_user_assignments`
+--
+ALTER TABLE `college_user_assignments`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `conversations`
 --
 ALTER TABLE `conversations`
   MODIFY `conversation_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `education_office_reports`
+--
+ALTER TABLE `education_office_reports`
+  MODIFY `report_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `employeeleave`
@@ -964,7 +1116,7 @@ ALTER TABLE `employeeleave`
 -- AUTO_INCREMENT for table `employees`
 --
 ALTER TABLE `employees`
-  MODIFY `employee_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=96;
+  MODIFY `employee_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=107;
 
 --
 -- AUTO_INCREMENT for table `employeetraining`
@@ -1024,7 +1176,7 @@ ALTER TABLE `leavetype`
 -- AUTO_INCREMENT for table `login_attempts`
 --
 ALTER TABLE `login_attempts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=108;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=113;
 
 --
 -- AUTO_INCREMENT for table `messages`
@@ -1066,7 +1218,7 @@ ALTER TABLE `training`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
 
 --
 -- Constraints for dumped tables
@@ -1086,98 +1238,19 @@ ALTER TABLE `approvalworkflow`
   ADD CONSTRAINT `approvalworkflow_ibfk_3` FOREIGN KEY (`approver_id`) REFERENCES `employees` (`employee_id`) ON DELETE SET NULL;
 
 --
--- Constraints for table `attendance`
+-- Constraints for table `college_user_assignments`
 --
-ALTER TABLE `attendance`
-  ADD CONSTRAINT `attendance_ibfk_1` FOREIGN KEY (`EmployeeID`) REFERENCES `employee` (`EmployeeID`);
+ALTER TABLE `college_user_assignments`
+  ADD CONSTRAINT `college_user_assignments_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `college_user_assignments_ibfk_2` FOREIGN KEY (`college_id`) REFERENCES `colleges` (`college_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `college_user_assignments_ibfk_3` FOREIGN KEY (`assigned_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
 
 --
--- Constraints for table `employeeleave`
+-- Constraints for table `education_office_reports`
 --
-ALTER TABLE `employeeleave`
-  ADD CONSTRAINT `employeeleave_ibfk_1` FOREIGN KEY (`EmployeeID`) REFERENCES `employee` (`EmployeeID`),
-  ADD CONSTRAINT `employeeleave_ibfk_2` FOREIGN KEY (`LeaveTypeID`) REFERENCES `leavetype` (`LeaveTypeID`),
-  ADD CONSTRAINT `employeeleave_ibfk_3` FOREIGN KEY (`ApproverID`) REFERENCES `employee` (`EmployeeID`);
-
---
--- Constraints for table `employees`
---
-ALTER TABLE `employees`
-  ADD CONSTRAINT `employees_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `roles` (`role_id`),
-  ADD CONSTRAINT `employees_ibfk_2` FOREIGN KEY (`department_id`) REFERENCES `departments` (`department_id`);
-
---
--- Constraints for table `employeetraining`
---
-ALTER TABLE `employeetraining`
-  ADD CONSTRAINT `employeetraining_ibfk_1` FOREIGN KEY (`EmployeeID`) REFERENCES `employee` (`EmployeeID`),
-  ADD CONSTRAINT `employeetraining_ibfk_2` FOREIGN KEY (`TrainingID`) REFERENCES `training` (`TrainingID`);
-
---
--- Constraints for table `interviews`
---
-ALTER TABLE `interviews`
-  ADD CONSTRAINT `interviews_ibfk_1` FOREIGN KEY (`application_id`) REFERENCES `job_applications` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `interviews_ibfk_2` FOREIGN KEY (`interviewer_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `interviews_ibfk_3` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
-
---
--- Constraints for table `jobapplication`
---
-ALTER TABLE `jobapplication`
-  ADD CONSTRAINT `jobapplication_ibfk_1` FOREIGN KEY (`PositionID`) REFERENCES `jobposition` (`PositionID`);
-
---
--- Constraints for table `jobposition`
---
-ALTER TABLE `jobposition`
-  ADD CONSTRAINT `jobposition_ibfk_1` FOREIGN KEY (`DepartmentID`) REFERENCES `department` (`DepartmentID`);
-
---
--- Constraints for table `job_applications`
---
-ALTER TABLE `job_applications`
-  ADD CONSTRAINT `job_applications_ibfk_1` FOREIGN KEY (`vacancy_id`) REFERENCES `job_vacancies` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `job_applications_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
-
---
--- Constraints for table `job_vacancies`
---
-ALTER TABLE `job_vacancies`
-  ADD CONSTRAINT `job_vacancies_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
-
---
--- Constraints for table `login_attempts`
---
-ALTER TABLE `login_attempts`
-  ADD CONSTRAINT `fk_user_login_attempts` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
---
--- Constraints for table `messages`
---
-ALTER TABLE `messages`
-  ADD CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`sender_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `messages_ibfk_2` FOREIGN KEY (`receiver_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `messages_ibfk_3` FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`conversation_id`) ON DELETE CASCADE;
-
---
--- Constraints for table `payroll`
---
-ALTER TABLE `payroll`
-  ADD CONSTRAINT `payroll_ibfk_1` FOREIGN KEY (`EmployeeID`) REFERENCES `employee` (`EmployeeID`);
-
---
--- Constraints for table `performancereview`
---
-ALTER TABLE `performancereview`
-  ADD CONSTRAINT `performancereview_ibfk_1` FOREIGN KEY (`EmployeeID`) REFERENCES `employee` (`EmployeeID`),
-  ADD CONSTRAINT `performancereview_ibfk_2` FOREIGN KEY (`ReviewerID`) REFERENCES `employee` (`EmployeeID`);
-
---
--- Constraints for table `position`
---
-ALTER TABLE `position`
-  ADD CONSTRAINT `position_ibfk_1` FOREIGN KEY (`DepartmentID`) REFERENCES `department` (`DepartmentID`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `education_office_reports`
+  ADD CONSTRAINT `education_office_reports_ibfk_1` FOREIGN KEY (`college_id`) REFERENCES `colleges` (`college_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `education_office_reports_ibfk_2` FOREIGN KEY (`generated_by`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

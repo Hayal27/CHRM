@@ -20,7 +20,9 @@ import {
   BarChartOutlined,
   PlusOutlined,
   FileTextOutlined,
-  SettingOutlined
+  SettingOutlined,
+  ExperimentOutlined,
+  BankOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
 import { API_BASE_URL } from '../../utils/constants';
@@ -28,6 +30,8 @@ import AdminModule from './AdminModule';
 import OfficeModule from './OfficeModule';
 import CollegeManagement from './CollegeManagement';
 import EmployeeReports from './EmployeeReports';
+import TechnologyTransferReports from './TechnologyTransferReports';
+import EnterpriseDataModule from './EnterpriseDataModule';
 
 const { Title } = Typography;
 const { TabPane } = Tabs;
@@ -318,6 +322,51 @@ const EducationOfficeDashboard: React.FC = () => {
             key="reports"
           >
             <EmployeeReports colleges={colleges} />
+          </TabPane>
+
+          <TabPane 
+            tab={
+              <span>
+                <ExperimentOutlined />
+                Technology Transfer Reports
+              </span>
+            } 
+            key="technology"
+          >
+            <TechnologyTransferReports colleges={colleges} />
+          </TabPane>
+
+          <TabPane 
+            tab={
+              <span>
+                <BankOutlined />
+                Enterprise Data
+              </span>
+            } 
+            key="enterprise"
+          >
+            <Card>
+              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <BankOutlined style={{ fontSize: '48px', color: '#1890ff', marginBottom: '16px' }} />
+                <Title level={3}>Enterprise Data Management</Title>
+                <p style={{ marginBottom: '24px', color: '#666' }}>
+                  Manage enterprise data with college associations, comprehensive reporting, and advanced filtering capabilities.
+                </p>
+                <Space direction="vertical" size="middle">
+                  <Button 
+                    type="primary" 
+                    size="large"
+                    icon={<BankOutlined />}
+                    onClick={() => window.location.href = '/enterprise-data'}
+                  >
+                    Go to Enterprise Data Management
+                  </Button>
+                  <div style={{ fontSize: '14px', color: '#999' }}>
+                    Full enterprise management with college integration
+                  </div>
+                </Space>
+              </div>
+            </Card>
           </TabPane>
         </Tabs>
       </Spin>

@@ -12,6 +12,7 @@ import SignUpPage from './pages/SignUpPage.tsx';
 import UserTable from './components/admin/UserTable.tsx';
 import EmployeeRegistration from './components/admin/EmployeeRegistration.tsx';
 import MenuAccessControlPage from './components/admin/MenuAccessControlPage';
+import MenuManagement from './components/admin/MenuManagement';
 // Import recruitment components
 import RecruitmentDashboard from './components/recruitment/RecruitmentDashboard';
 import JobVacancyForm from './components/recruitment/JobVacancyForm';
@@ -28,6 +29,8 @@ import EnhancedEmployeeRegistration from './components/employee/EnhancedEmployee
 
 // Import education office components
 import EducationOfficeDashboard from './components/education-office/EducationOfficeDashboard';
+import TechnologyTransferPage from './pages/TechnologyTransferPage';
+import EnterpriseDataPage from './pages/EnterpriseDataPage';
 
 
 
@@ -184,6 +187,7 @@ const AppContent: React.FC = () => {
                         <Route path="/employees" element={<ProtectedRoute role={1}><div>Employees Component</div></ProtectedRoute>} />
                         <Route path="/settings" element={<ProtectedRoute role={1}><div>Settings Component</div></ProtectedRoute>} />
                         <Route path="/admin/menu-access" element={<ProtectedRoute role={1}><MenuAccessControlPage /></ProtectedRoute>} />
+                        <Route path="/admin/menu-management" element={<ProtectedRoute role={1}><MenuManagement /></ProtectedRoute>} />
 
                         {/* Prevent authenticated users from navigating to /login */}
                         <Route path="/login" element={<PostLoginRedirect />} />
@@ -238,6 +242,8 @@ const AppContent: React.FC = () => {
 
                         {/* New Enhanced Features */}
                         <Route path="/education-office-dashboard" element={<ProtectedRoute role={[1, 2]}><EducationOfficeDashboard /></ProtectedRoute>} />
+                        <Route path="/technology-transfer" element={<ProtectedRoute role={[1, 2]}><TechnologyTransferPage /></ProtectedRoute>} />
+                        <Route path="/enterprise-data" element={<ProtectedRoute role={[1, 2]}><EnterpriseDataPage /></ProtectedRoute>} />
                         <Route path="/enhanced-employee-registration" element={<ProtectedRoute role={[1, 2]}><EnhancedEmployeeRegistration /></ProtectedRoute>} />
                     </Route>
                 </>

@@ -135,7 +135,7 @@ const LoginPage: React.FC = () => {
         setForgotMsg(null);
         setForgotLoading(true);
         try {
-            const res = await axios.post('http://localhost:5000/api/requestPasswordReset', { user_name: forgotEmail });
+            const res = await axios.post('http://localhost:5001/api/requestPasswordReset', { user_name: forgotEmail });
             if (res.data.success) {
                 setForgotMsg('OTP sent to your email. Please check your inbox.');
                 setForgotStep('otp');
@@ -154,7 +154,7 @@ const LoginPage: React.FC = () => {
         setForgotMsg(null);
         setForgotLoading(true);
         try {
-            const res = await axios.post('http://localhost:5000/api/reset-resetPassword', {
+            const res = await axios.post('http://localhost:5001/api/reset-resetPassword', {
                 user_name: forgotEmail,
                 otp,
                 new_password: newPassword

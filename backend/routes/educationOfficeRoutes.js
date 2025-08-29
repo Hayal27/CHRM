@@ -11,7 +11,19 @@ const {
     deleteCollege,
     generateEmployeeReport,
     getEmployeesByCollege,
-    getCollegeStatistics
+    getCollegeStatistics,
+    // Technology Transfer functions
+    getAllTechnologyTransfers,
+    createTechnologyTransfer,
+    updateTechnologyTransfer,
+    deleteTechnologyTransfer,
+    getTechnologyTransferReport,
+    // Enterprise Data functions
+    getAllEnterprises,
+    createEnterprise,
+    updateEnterprise,
+    deleteEnterprise,
+    getEnterpriseReport
 } = require('../controllers/educationOfficeController');
 
 // =====================================================
@@ -77,6 +89,84 @@ router.post('/reports/generate', verifyToken, generateEmployeeReport);
  * @access Private
  */
 router.get('/statistics/:college_id', verifyToken, getCollegeStatistics);
+
+// =====================================================
+// TECHNOLOGY TRANSFER MODULE ROUTES
+// =====================================================
+
+/**
+ * @route GET /api/education-office/technology-transfers
+ * @desc Get all technology transfers
+ * @access Private
+ */
+router.get('/technology-transfers', verifyToken, getAllTechnologyTransfers);
+
+/**
+ * @route POST /api/education-office/technology-transfers
+ * @desc Create a new technology transfer
+ * @access Private
+ */
+router.post('/technology-transfers', verifyToken, createTechnologyTransfer);
+
+/**
+ * @route PUT /api/education-office/technology-transfers/:id
+ * @desc Update technology transfer
+ * @access Private
+ */
+router.put('/technology-transfers/:id', verifyToken, updateTechnologyTransfer);
+
+/**
+ * @route DELETE /api/education-office/technology-transfers/:id
+ * @desc Delete technology transfer
+ * @access Private
+ */
+router.delete('/technology-transfers/:id', verifyToken, deleteTechnologyTransfer);
+
+/**
+ * @route GET /api/education-office/technology-transfers/report
+ * @desc Get technology transfer report
+ * @access Private
+ */
+router.get('/technology-transfers/report', verifyToken, getTechnologyTransferReport);
+
+// =====================================================
+// ENTERPRISE DATA MODULE ROUTES
+// =====================================================
+
+/**
+ * @route GET /api/education-office/enterprises
+ * @desc Get all enterprises
+ * @access Private
+ */
+router.get('/enterprises', verifyToken, getAllEnterprises);
+
+/**
+ * @route POST /api/education-office/enterprises
+ * @desc Create a new enterprise
+ * @access Private
+ */
+router.post('/enterprises', verifyToken, createEnterprise);
+
+/**
+ * @route PUT /api/education-office/enterprises/:id
+ * @desc Update enterprise
+ * @access Private
+ */
+router.put('/enterprises/:id', verifyToken, updateEnterprise);
+
+/**
+ * @route DELETE /api/education-office/enterprises/:id
+ * @desc Delete enterprise
+ * @access Private
+ */
+router.delete('/enterprises/:id', verifyToken, deleteEnterprise);
+
+/**
+ * @route GET /api/education-office/enterprises/report
+ * @desc Get enterprise data report
+ * @access Private
+ */
+router.get('/enterprises/report', verifyToken, getEnterpriseReport);
 
 // =====================================================
 // UTILITY ROUTES
