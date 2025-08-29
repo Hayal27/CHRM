@@ -193,7 +193,7 @@ const jobSeekerSignUp = async (req, res) => {
 
         await connection.query(
             'INSERT INTO users (employee_id, user_name, password, role_id, status) VALUES (?, ?, ?, ?, ?)',
-            [employee_id, email, hashedPassword, role_id, 'Active']
+            [employee_id, email, hashedPassword, role_id, '1']
         );
 
         await connection.commit();

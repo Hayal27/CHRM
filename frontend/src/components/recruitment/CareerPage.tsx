@@ -351,10 +351,16 @@ const CareerPage: React.FC = () => {
           showIcon
         />
         <div style={{ marginTop: 24, textAlign: 'center' }}>
-          <Button type="primary" onClick={() => window.location.href = '/applicant_login'} style={{ marginRight: 8 }}>
+      <Button type="primary" onClick={() => {
+            setLoginModalVisible(false);
+            window.location.href = '/applicant_login';
+          }} style={{ marginRight: 8 }}>
             Login
           </Button>
-          <Button onClick={() => setSignUpModalVisible(true)}>
+          <Button onClick={() => {
+            setLoginModalVisible(false);
+            setSignUpModalVisible(true);
+          }}>
             Sign Up
           </Button>
         </div>

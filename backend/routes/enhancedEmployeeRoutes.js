@@ -39,7 +39,7 @@ const {
     addEnhancedEmployee,
     getAllEnhancedEmployees,
     getEnhancedEmployeeById,
-    verifyToken, updateEnhancedEmployee,
+    updateEnhancedEmployee,
     getEmployeeStatistics
 } = require('../controllers/enhancedEmployeeController');
 
